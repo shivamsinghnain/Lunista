@@ -19,6 +19,8 @@ uniform sampler2D shadowcolor0;
 
 uniform sampler2D noisetex;
 
+uniform int worldTime;
+
 uniform vec3 shadowLightPosition;
 
 uniform mat4 gbufferProjectionInverse;
@@ -41,7 +43,8 @@ layout(location = 0) out vec4 color;
 
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
-const vec3 sunlightColor = vec3(1);
+const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
+const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 const vec3 ambientColor = vec3(0.1);
 
 vec3 getShadow(vec3 shadowScreenPos){
@@ -124,6 +127,8 @@ void main() {
 		return;
 	}
 
+  bool isNight = worldTime >= 13000 && worldTime < 24000;
+
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
 	vec3 encodedNormal = texture(colortex2, texcoord).rgb;
 	vec3 normal = normalize((encodedNormal - 0.5) * 2.0); // we normalize to make sure it is of unit length
@@ -142,7 +147,14 @@ void main() {
 	vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 	
 	vec3 shadow = getSoftShadow(shadowClipPos);
-	vec3 sunlight = sunlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
+
+  vec3 sunlight;
+
+	if (isNight) {
+    sunlight = moonlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
+  } else {
+    sunlight = sunlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
+  };
 
 	color.rgb *= blocklight + skylight + ambient + sunlight;
 }
