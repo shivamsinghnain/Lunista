@@ -151,6 +151,9 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos);
 
+  float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+  color.rgb *= mix(0.5, 1.0, ao);
+
   vec3 sunlight;
 
 	if (isNight) {

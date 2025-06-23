@@ -56,5 +56,4 @@ void main() {
     color.rgb = mix(color.rgb, sunlightColor + fogColor, clamp(fogFactor, 0.0, 1.0));
   };
 
-    
 }
