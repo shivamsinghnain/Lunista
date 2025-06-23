@@ -10,6 +10,8 @@ uniform sampler2D colortex2;
 
 uniform sampler2D depthtex0;
 
+uniform int worldTime;
+
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
 
@@ -27,7 +29,8 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
 /* RENDERTARGETS: 0 */
 layout(location = 0) out vec4 color;
 
-const vec3 sunlightColor = vec3(1);
+const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
+const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
 void main() {
     color = texture(colortex0, texcoord);
@@ -37,11 +40,21 @@ void main() {
     return;
     }
 
+    bool isNight = worldTime >= 13000 && worldTime < 24000;
+
     vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
     vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 
     float dist = length(viewPos) / far;
     float fogFactor = exp(-FOG_DENSITY * (1.0 - dist));
 
+    vec3 sunlight;
+    
+	if (isNight) {
+    color.rgb = mix(color.rgb, moonlightColor + fogColor, clamp(fogFactor, 0.0, 1.0));
+  } else {
     color.rgb = mix(color.rgb, sunlightColor + fogColor, clamp(fogFactor, 0.0, 1.0));
+  };
+
+    
 }

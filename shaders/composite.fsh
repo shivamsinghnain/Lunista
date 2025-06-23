@@ -43,9 +43,15 @@ layout(location = 0) out vec4 color;
 
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
+
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
-const vec3 ambientColor = vec3(0.1);
+
+bool isNight = worldTime >= 13000 && worldTime < 24000;
+
+const vec3 ambientColorDay = vec3(0.15);
+const vec3 ambientColorNight = vec3(0.05);
+vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
 
 vec3 getShadow(vec3 shadowScreenPos){
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r); // sample the shadow map containing everything
@@ -127,8 +133,6 @@ void main() {
 		return;
 	}
 
-  bool isNight = worldTime >= 13000 && worldTime < 24000;
-
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
 	vec3 encodedNormal = texture(colortex2, texcoord).rgb;
 	vec3 normal = normalize((encodedNormal - 0.5) * 2.0); // we normalize to make sure it is of unit length
@@ -138,7 +142,6 @@ void main() {
 
 	vec3 blocklight = lightmap.r * blocklightColor;
 	vec3 skylight = lightmap.g * skylightColor;
-	vec3 ambient = ambientColor;
 
 	vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
 	vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
