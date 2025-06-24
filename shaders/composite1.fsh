@@ -46,8 +46,10 @@ void main() {
     vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
     vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 
+    vec3 fogColor = isNight ? vec3(0.2, 0.25, 0.3) : vec3(0.6, 0.7, 0.8);
+
     float dist = length(viewPos) / far;
     float fogFactor = exp(-FOG_DENSITY * (1.0 - dist));
     
-    color.rgb = mix(color.rgb, fogTint + fogColor, clamp(fogFactor, 0.0, 1.0));
+    color.rgb = mix(color.rgb, fogTint * fogColor, clamp(fogFactor, 0.0, 0.75));
 }
