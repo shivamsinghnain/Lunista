@@ -2,8 +2,6 @@
 
 #include "/lib/distort.glsl"
 
-#define FOG_DENSITY 5.0
-
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
@@ -32,24 +30,38 @@ layout(location = 0) out vec4 color;
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
+const float fogDensityDay = 1.0;
+const float fogDensityNight = 3.0;
+
 void main() {
     color = texture(colortex0, texcoord);
-
     float depth = texture(depthtex0, texcoord).r;
-    if(depth == 1.0){
-    return;
-    }
 
     bool isNight = worldTime >= 13000 && worldTime < 24000;
     vec3 fogTint = isNight ? moonlightColor : sunlightColor;
-
-    vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
-    vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
+    float fogDensity = isNight ? fogDensityNight : fogDensityDay;
 
     vec3 fogColor = isNight ? vec3(0.2, 0.25, 0.3) : vec3(0.6, 0.7, 0.8);
 
-    float dist = length(viewPos) / far;
-    float fogFactor = exp(-FOG_DENSITY * (1.0 - dist));
-    
-    color.rgb = mix(color.rgb, fogTint * fogColor, clamp(fogFactor, 0.0, 0.75));
+    vec3 finalFogColor = fogColor * fogTint;
+
+    float fogFactor;
+
+    if (depth == 1.0) {
+        float horizonFog = clamp((1.0 - texcoord.y) * 1.5, 0.0, 1.0);
+        fogFactor = horizonFog * 1.0; // max 50% fog near horizon
+    } else {
+        vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
+        vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
+        vec4 worldPos4 = gbufferModelViewInverse * vec4(viewPos, 1.0);
+        vec3 worldPos = worldPos4.xyz;
+
+        vec3 cameraPos = (gbufferModelViewInverse * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        float worldDistance = distance(worldPos, cameraPos);
+
+        fogFactor = 1.0 - exp(-fogDensity * (worldDistance / far));
+    }
+
+    fogFactor = clamp(fogFactor, 0.0, 0.75); // cap so fog never fully erases color
+    color.rgb = mix(color.rgb, finalFogColor, fogFactor);
 }
