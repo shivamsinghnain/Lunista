@@ -31,7 +31,7 @@ const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
 const float fogDensityDay = 0.5;
-const float fogDensityNight = 0.5;
+const float fogDensityNight = 1.0;
 
 void main() {
     color = texture(colortex0, texcoord);
