@@ -45,12 +45,12 @@ const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
-const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
+const vec3 moonlightColor = vec3(0.15, 0.18, 0.3);
 
 bool isNight = worldTime >= 13000 && worldTime < 24000;
 
 const vec3 ambientColorDay = vec3(0.15);
-const vec3 ambientColorNight = vec3(0.05);
+const vec3 ambientColorNight = vec3(0.01);
 vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
 
 vec3 getShadow(vec3 shadowScreenPos){
@@ -141,7 +141,7 @@ void main() {
 	vec3 worldLightVector = mat3(gbufferModelViewInverse) * lightVector;
 
 	vec3 blocklight = lightmap.r * blocklightColor;
-	vec3 skylight = lightmap.g * skylightColor;
+	vec3 skylight = lightmap.g * (isNight ? vec3(0.01, 0.01, 0.02) : skylightColor);
 
 	vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
 	vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
