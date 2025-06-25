@@ -43,7 +43,7 @@ void main() {
     vec3 fogTint = isNight ? moonlightColor : sunlightColor;
     float fogDensity = isNight ? fogDensityNight : fogDensityDay;
 
-    vec3 fogColor = isNight ? vec3(0.08, 0.08, 0.10) : vec3(0.6, 0.7, 0.8);
+    vec3 fogColor = isNight ? vec3(0.08, 0.08, 0.08) : vec3(0.6, 0.7, 0.8);
 
     vec3 finalFogColor = fogColor * fogTint;
 
