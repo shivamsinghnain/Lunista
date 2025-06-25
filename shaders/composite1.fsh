@@ -31,7 +31,7 @@ const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
 const float fogDensityDay = 0.5;
-const float fogDensityNight = 1.0;
+const float fogDensityNight = 1.5;
 
 void main() {
     color = texture(colortex0, texcoord);
@@ -43,7 +43,7 @@ void main() {
     vec3 fogTint = isNight ? moonlightColor : sunlightColor;
     float fogDensity = isNight ? fogDensityNight : fogDensityDay;
 
-    vec3 fogColor = isNight ? vec3(0.2, 0.25, 0.3) : vec3(0.6, 0.7, 0.8);
+    vec3 fogColor = isNight ? vec3(0.08, 0.08, 0.10) : vec3(0.6, 0.7, 0.8);
 
     vec3 finalFogColor = fogColor * fogTint;
 
@@ -63,7 +63,7 @@ void main() {
         fogFactor = 1.0 - exp(-fogDensity * (worldDistance / far));
     }
 
-    fogFactor = clamp(fogFactor, 0.0, 0.75);
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
     fogFactor = smoothstep(0.0, 1.0, fogFactor);
     color.rgb = mix(color.rgb, finalFogColor, fogFactor);
 }
