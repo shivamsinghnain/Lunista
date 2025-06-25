@@ -31,11 +31,13 @@ const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
 const float fogDensityDay = 0.5;
-const float fogDensityNight = 3.0;
+const float fogDensityNight = 0.5;
 
 void main() {
     color = texture(colortex0, texcoord);
+
     float depth = texture(depthtex0, texcoord).r;
+    float fogFactor;
 
     bool isNight = worldTime >= 13000 && worldTime < 24000;
     vec3 fogTint = isNight ? moonlightColor : sunlightColor;
@@ -45,10 +47,9 @@ void main() {
 
     vec3 finalFogColor = fogColor * fogTint;
 
-    float fogFactor;
-
     if (depth == 1.0) {
         float horizonFog = clamp((1.0 - texcoord.y) * 1.5, 0.0, 1.0);
+        horizonFog = smoothstep(0.0, 1.0, (1.0 - texcoord.y) * 1.5);
         fogFactor = horizonFog * 1.0;
     } else {
         vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
@@ -62,6 +63,7 @@ void main() {
         fogFactor = 1.0 - exp(-fogDensity * (worldDistance / far));
     }
 
-    fogFactor = clamp(fogFactor, 0.0, 0.75); // cap so fog never fully erases color
+    fogFactor = clamp(fogFactor, 0.0, 0.75);
+    fogFactor = smoothstep(0.0, 1.0, fogFactor);
     color.rgb = mix(color.rgb, finalFogColor, fogFactor);
 }
