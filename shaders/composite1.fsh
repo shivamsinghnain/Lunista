@@ -30,7 +30,7 @@ layout(location = 0) out vec4 color;
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
-const float fogDensityDay = 1.0;
+const float fogDensityDay = 0.5;
 const float fogDensityNight = 3.0;
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
 
     if (depth == 1.0) {
         float horizonFog = clamp((1.0 - texcoord.y) * 1.5, 0.0, 1.0);
-        fogFactor = horizonFog * 1.0; // max 50% fog near horizon
+        fogFactor = horizonFog * 1.0;
     } else {
         vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
         vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
