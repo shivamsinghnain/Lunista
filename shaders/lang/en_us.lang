@@ -1,0 +1,6 @@
+screen.LIGHT=Lighting
+
+screen.DIRECTLIGHT=Direct Light
+option.shadowMapResolution=Shadow Resolution
+
+screen.POST=Post Processing
