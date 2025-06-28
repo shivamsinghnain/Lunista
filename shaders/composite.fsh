@@ -93,9 +93,13 @@ vec4 getNoise(vec2 coord){
   return texelFetch(noisetex, noiseCoord, 0);
 }
 
-vec3 getSoftShadow(vec4 shadowClipPos){
+vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
   const float range = SHADOW_SOFTNESS / 2.0; // how far away from the original position we take our samples from
   const float increment = range / SHADOW_QUALITY; // distance between each sample
+
+  const float shadowMapPixelSize = 1.0 / shadowMapResolution;
+
+  const vec3 biasAdjustFactor = vec3(shadowMapPixelSize * 2.0, shadowMapPixelSize * 2.0, -0.00006103515625);
 
   float noise = getNoise(texcoord).r;
 
@@ -110,12 +114,20 @@ vec3 getSoftShadow(vec4 shadowClipPos){
 
   for(float x = -range; x <= range; x += increment){
     for (float y = -range; y <= range; y+= increment){
+
       vec2 offset = rotation * vec2(x, y) / shadowMapResolution; // offset in the rotated direction by the specified amount. We divide by the resolution so our offset is in terms of pixels
       vec4 offsetShadowClipPos = shadowClipPos + vec4(offset, 0.0, 0.0); // add offset
-      offsetShadowClipPos.z -= 0.001; // apply bias
+
+      // Old Bias
+      // offsetShadowClipPos.z -= 0.001; // apply bias
+
       offsetShadowClipPos.xyz = distortShadowClipPos(offsetShadowClipPos.xyz); // apply distortion
       vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
       vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
+
+      vec3 shadowNormal = mat3(shadowModelView);
+      shadowScreenPos += shadowNormal * biasAdjustFactor;
+
       shadowAccum += getShadow(shadowScreenPos); // take shadow sample
       samples++;
     }
