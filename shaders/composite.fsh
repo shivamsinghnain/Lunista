@@ -44,7 +44,7 @@ layout(location = 0) out vec4 color;
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
-const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 2.0;
+const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 3.0;
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
 bool isNight = worldTime >= 13000 && worldTime < 24000;
