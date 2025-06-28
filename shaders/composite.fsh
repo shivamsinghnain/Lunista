@@ -125,7 +125,7 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
       vec3 shadowNDCPos = offsetShadowClipPos.xyz / offsetShadowClipPos.w; // convert to NDC space
       vec3 shadowScreenPos = shadowNDCPos * 0.5 + 0.5; // convert to screen space
 
-      vec3 shadowNormal = mat3(shadowModelView);
+      vec3 shadowNormal = mat3(shadowModelView) * normal;
       shadowScreenPos += shadowNormal * biasAdjustFactor;
 
       shadowAccum += getShadow(shadowScreenPos); // take shadow sample
@@ -161,7 +161,7 @@ void main() {
 	vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
 	vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 	
-	vec3 shadow = getSoftShadow(shadowClipPos);
+	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
   float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
   color.rgb *= mix(0.5, 1.0, ao);
