@@ -3,7 +3,7 @@
 #include /lib/distort.glsl
 
 /*
-const int colortex0Format = RGB16;
+const int colortex0Format = R11F_G11F_B10F;
 */
 
 uniform sampler2D colortex0;
@@ -138,7 +138,6 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
 
 void main() {
 	color = texture(colortex0, texcoord);
-	color.rgb = pow(color.rgb, vec3(2.2));
 
 	float depth = texture(depthtex0, texcoord).r;
 	if (depth == 1.0) {
@@ -163,8 +162,8 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
-  float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-  color.rgb *= mix(0.5, 1.0, ao);
+  // float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+  // color.rgb *= mix(0.5, 1.0, ao);
 
   vec3 sunlight;
 
