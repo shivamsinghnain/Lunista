@@ -34,7 +34,7 @@ layout(location = 0) out vec4 color;
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8);
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 
-const float fogDensityDay = 0.5;
+const float fogDensityDay = 1.0;
 const float fogDensityNight = 1.5;
 
 void main() {
