@@ -19,8 +19,6 @@ uniform mat4 gbufferModelViewInverse;
 
 uniform float far;
 
-uniform vec3 fogColor;
-
 in vec2 texcoord;
 
 vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
@@ -52,9 +50,8 @@ void main() {
     vec3 finalFogColor = fogColor * fogTint;
 
     if (depth == 1.0) {
-        float horizonFog = clamp((1.0 - texcoord.y) * 1.5, 0.0, 1.0);
-        horizonFog = smoothstep(0.0, 1.0, (1.0 - texcoord.y) * 1.5);
-        fogFactor = horizonFog * 1.0;
+        float horizonFog = smoothstep(0.0, 1.0, (1.0 - texcoord.y) * 1.5);
+        fogFactor = horizonFog * 0.6;
     } else {
         vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
         vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
