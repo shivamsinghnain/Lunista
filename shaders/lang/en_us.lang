@@ -3,4 +3,7 @@ screen.LIGHT=Lighting
 screen.DIRECTLIGHT=Direct Light
 option.shadowMapResolution=Shadow Resolution
 
+screen.INDIRECTLIGHT=Indirect Light
+option.materialAO=Resource Pack AO
+
 screen.POST=Post Processing

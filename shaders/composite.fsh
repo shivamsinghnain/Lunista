@@ -6,6 +6,8 @@
 const int colortex0Format = R11F_G11F_B10F;
 */
 
+//#define materialAO
+
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
@@ -145,8 +147,8 @@ void main() {
 	}
 
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
-	vec3 encodedNormal = texture(colortex2, texcoord).rgb;
-	vec3 normal = normalize((encodedNormal - 0.5) * 2.0); // we normalize to make sure it is of unit length
+	vec4 encodedNormal = texture(colortex2, texcoord);
+	vec3 normal = normalize((encodedNormal.rgb - 0.5) * 2.0); // we normalize to make sure it is of unit length
 
 	vec3 lightVector = normalize(shadowLightPosition);
 	vec3 worldLightVector = mat3(gbufferModelViewInverse) * lightVector;
@@ -164,6 +166,7 @@ void main() {
 
   // float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
   // color.rgb *= mix(0.5, 1.0, ao);
+  float labAO = encodedNormal.a;
 
   vec3 sunlight;
 
@@ -173,5 +176,13 @@ void main() {
     sunlight = sunlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
   };
 
-	color.rgb *= blocklight + skylight + ambient + sunlight;
+  vec3 indirectLight = blocklight + skylight + ambient;
+
+  #ifdef materialAO
+
+    indirectLight *= labAO;
+
+  #endif
+
+	color.rgb *= indirectLight + sunlight;
 }
