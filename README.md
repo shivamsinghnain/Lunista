@@ -1,12 +1,12 @@
 ### Features as of now:
 
-LabPBR normal mapping (can be toggled in shader settings)
-LabPBR texture AO (can be toggled in shader settings)
-Built-in tonemap (not configurable, it just exists)
-Basic (shadow resolution can be changed in shader settings)
+1. LabPBR normal mapping (can be toggled in shader settings)
+2. LabPBR texture AO (can be toggled in shader settings)
+3. Built-in tonemap (not configurable, it just exists)
+4. Basic (shadow resolution can be changed in shader settings)
 - shadow mapping improved from Iris tutorial thanks to eldeston
-Some fog
-- Still being worked on and is slightly broken rn,
+5. Some fog
+- Still being worked on and is slightly broken rn.
 
 ### Future plans:
 
