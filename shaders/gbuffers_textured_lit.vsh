@@ -28,6 +28,5 @@ void main() {
 
 	vBitangent = cross(vTangent, vNormal) * (at_tangent.w < 0.0 ? -1.0 : 1.0);
 
-
-	normal = mat3(gbufferModelViewInverse) * normal; // this converts the normal to world/player space
+	normal = mat3(gbufferModelViewInverse) * vNormal; // this converts the normal to world/player space
 }

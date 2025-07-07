@@ -1,5 +1,7 @@
 #version 330 compatibility
 
+//#define normalMapping
+
 uniform sampler2D gtexture;
 uniform sampler2D normals; // LabPBR normal map
 
@@ -46,5 +48,10 @@ void main() {
 
 	// Output
 	lightmapData = vec4(lmcoord, 0.0, 1.0);
+
+	encodedNormal = vec4(normal * 0.5 + 0.5, labAO);
+
+	#ifdef normalMapping
 	encodedNormal = vec4(worldNormal * 0.5 + 0.5, labAO);
+	#endif
 }

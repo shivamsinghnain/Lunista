@@ -1,4 +1,5 @@
 screen.LIGHT=Lighting
+screen.TERRAIN=Terrain
 
 screen.DIRECTLIGHT=Direct Light
 option.shadowMapResolution=Shadow Resolution
