@@ -9,7 +9,10 @@
 
 ### Future plans:
 
-1. God rays
-2. Specular mapping
-3. tonemap improvement
-4. You tell me (no big things for now tho as I'm still learning, so nothing RT related)
+1. Sky/Sunlgiht, Moonlight, fog improvements (should improve the overall feel of the shader)
+2. Emissives
+3. Specular mapping
+4. tonemap improvement
+5. You tell me (no big things for now tho as I'm still learning, so nothing RT related)
+
+God rays (tried, but they don't look good, have to do volumetric godrays instead so that'll be in far future)
