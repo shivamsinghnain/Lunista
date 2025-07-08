@@ -24,8 +24,10 @@ uniform sampler2D noisetex;
 uniform int worldTime;
 
 uniform vec3 shadowLightPosition;
+uniform vec3 sunPosition;
 
 uniform mat4 gbufferProjectionInverse;
+uniform mat4 gbufferProjection;
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
@@ -54,6 +56,12 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const vec3 ambientColorDay = vec3(0.15);
 const vec3 ambientColorNight = vec3(0.01);
 vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
+
+const int NUM_SAMPLES = 160;
+const float gDensity = 0.95;
+const float gWeight = 0.5;
+const float gDecay = 0.87;
+const float gExposure = 0.3;
 
 vec3 getShadow(vec3 shadowScreenPos){
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r); // sample the shadow map containing everything
@@ -141,10 +149,35 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
 void main() {
 	color = texture(colortex0, texcoord);
 
+  vec4 sunClipPos = gbufferProjection * vec4(shadowLightPosition, 1.0);
+  vec3 sunNDCPos = sunClipPos.xyz / sunClipPos.w;
+  vec3 sunScreenPos = sunNDCPos * 0.5 + 0.5;
+
+  vec2 deltaTexCoord = (texcoord - sunScreenPos.xy);
+  deltaTexCoord *= 1.0 / NUM_SAMPLES * gDensity;
+
+  float godray = 0.0;
+  float illuminationDecay = 1.0;
+  vec2 sampleCoord = texcoord;
+
+  for (int i = 0; i < NUM_SAMPLES; i++)
+  {
+    // Step sample location along ray.
+    sampleCoord -= deltaTexCoord;
+    // Retrieve sample at new location.
+    float depthSample = texture(depthtex0, sampleCoord).r;
+    float gSample = depthSample >= 1.0 ? 1.0 : 0.0;
+    // Apply sample attenuation scale/decay factors.
+    gSample *= illuminationDecay * gWeight;
+    // Accumulate combined color.
+    godray += gSample;
+    // Update exponential decay factor.
+    illuminationDecay *= gDecay;
+  }
+
+  godray *= gExposure;
+
 	float depth = texture(depthtex0, texcoord).r;
-	if (depth == 1.0) {
-		return;
-	}
 
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
 	vec4 encodedNormal = texture(colortex2, texcoord);
@@ -164,8 +197,8 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
-  float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-  color.rgb *= mix(0.5, 1.0, ao);
+  // float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+  // color.rgb *= mix(0.5, 1.0, ao);
   
   float labAO = encodedNormal.a;
 
@@ -185,5 +218,9 @@ void main() {
 
   #endif
 
+  float sunDist = length(texcoord - sunScreenPos.xy);
+  float fade = smoothstep(0.05, 0.25, sunDist); // adjust as needed
+
 	color.rgb *= indirectLight + sunlight;
+  color.rgb += godray * sunlightColor;
 }
