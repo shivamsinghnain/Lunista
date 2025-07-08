@@ -164,8 +164,9 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
-  // float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-  // color.rgb *= mix(0.5, 1.0, ao);
+  float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
+  color.rgb *= mix(0.5, 1.0, ao);
+  
   float labAO = encodedNormal.a;
 
   vec3 sunlight;
