@@ -101,7 +101,7 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
 
   const float shadowMapPixelSize = 1.0 / shadowMapResolution;
 
-  const vec3 biasAdjustFactor = vec3(shadowMapPixelSize * 2.0, shadowMapPixelSize * 2.0, -0.00006103515625);
+  const vec3 biasAdjustFactor = vec3(shadowMapPixelSize * 3.0, shadowMapPixelSize * 3.0, -0.00006103515625);
 
   float noise = getNoise(texcoord).r;
 
