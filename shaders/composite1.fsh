@@ -50,21 +50,25 @@ void main() {
     vec3 finalFogColor = fogColor * fogTint;
 
     if (depth == 1.0) {
-        float horizonFog = smoothstep(0.0, 1.0, (1.0 - texcoord.y) * 1.5);
-        fogFactor = horizonFog * 0.6;
+        return;
     } else {
+
         vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
+
+        // View space
         vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
+
+        // View space to wrold space
         vec4 worldPos4 = gbufferModelViewInverse * vec4(viewPos, 1.0);
         vec3 worldPos = worldPos4.xyz;
 
         vec3 cameraPos = (gbufferModelViewInverse * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
         float worldDistance = distance(worldPos, cameraPos);
 
-        fogFactor = 1.0 - exp(-fogDensity * (worldDistance / far));
+        float dist = length(viewPos) / far;
+        fogFactor = 1.0 - exp(-fogDensity * dist);
     }
 
-    fogFactor = clamp(fogFactor, 0.0, 1.0);
     fogFactor = smoothstep(0.0, 1.0, fogFactor);
     color.rgb = mix(color.rgb, finalFogColor, fogFactor);
 }
