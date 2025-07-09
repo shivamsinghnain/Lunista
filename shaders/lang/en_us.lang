@@ -1,10 +1,11 @@
 screen.LIGHT=Lighting
-screen.TERRAIN=Terrain
 
 screen.DIRECTLIGHT=Direct Light
 option.shadowMapResolution=Shadow Resolution
 
 screen.INDIRECTLIGHT=Indirect Light
 option.materialAO=Resource Pack AO
+option.materialEmissive=Resource Pack Emission
 
-screen.POST=Post Processing
+screen.TERRAIN=Terrain
+option.normalMapping=Normal Mapping

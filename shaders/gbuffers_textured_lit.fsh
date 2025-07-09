@@ -4,6 +4,7 @@
 
 uniform sampler2D gtexture;
 uniform sampler2D normals; // LabPBR normal map
+uniform sampler2D specular; // LabPBR specular map
 
 uniform float alphaTestRef = 0.1;
 
@@ -20,6 +21,7 @@ in vec3 vBitangent;
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 lightmapData;
 layout(location = 2) out vec4 encodedNormal;
+layout(location = 3) out vec4 labSpecular;
 
 void main() {
 	color = texture(gtexture, texcoord) * glcolor;
@@ -33,6 +35,9 @@ void main() {
 
 	// Sample LabPBR normal map
 	vec3 sampledNormal = texture(normals, texcoord).rgb;
+
+	// Sample LabPBR specular map
+	labSpecular = texture(specular, texcoord);
 
 	//Decode XY from RG
 	vec2 sampledNormalXY = sampledNormal.rg * 2.0 - 1.0;

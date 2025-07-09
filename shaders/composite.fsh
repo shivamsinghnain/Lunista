@@ -7,10 +7,12 @@ const int colortex0Format = R11F_G11F_B10F;
 */
 
 //#define materialAO
+//#define materialEmissive
 
 uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
+uniform sampler2D colortex3;
 
 uniform sampler2D depthtex0;
 
@@ -40,8 +42,9 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
   return homPos.xyz / homPos.w;
 }
 
-/* RENDERTARGETS: 0 */
+/* RENDERTARGETS: 0,4 */
 layout(location = 0) out vec4 color;
+layout(location = 1) out vec4 bloom;
 
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
@@ -54,6 +57,8 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const vec3 ambientColorDay = vec3(0.15);
 const vec3 ambientColorNight = vec3(0.01);
 vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
+
+#define EMISSIVE_INTENSITY 7.5 // [1-10]
 
 vec3 getShadow(vec3 shadowScreenPos){
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r); // sample the shadow map containing everything
@@ -166,7 +171,13 @@ void main() {
 
   float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
   color.rgb *= mix(0.5, 1.0, ao);
-  
+
+  vec4 labSpecular = texture(colortex3, texcoord);
+  float labEmissive = fract(labSpecular.a);
+
+  vec3 emissiveColor = color.rgb;
+  vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
+
   float labAO = encodedNormal.a;
 
   vec3 sunlight;
@@ -186,4 +197,8 @@ void main() {
   #endif
 
 	color.rgb *= indirectLight + sunlight;
+
+  #ifdef materialEmissive
+  color.rgb += emissiveFinal;
+  #endif
 }
