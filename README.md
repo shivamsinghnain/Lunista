@@ -4,9 +4,9 @@
 2. LabPBR texture AO (can be toggled in shader settings)
 3. LabPBR emissives (can be toggled in shader settings)
 4. Built-in tonemap (not configurable, it just exists)
-5. Basic (shadow resolution can be changed in shader settings)
-- shadow mapping improved from Iris tutorial thanks to eldeston
-5. Some fog
+5. Basic shadow mapping (shadow resolution can be changed in shader settings)
+6. Some fog
+7. BLOOM
 
 ### Future plans:
 
