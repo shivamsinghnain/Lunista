@@ -42,7 +42,7 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
   return homPos.xyz / homPos.w;
 }
 
-/* RENDERTARGETS: 0,4,5 */
+/* RENDERTARGETS: 0,5 */
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 bloom;
 
