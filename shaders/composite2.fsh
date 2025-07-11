@@ -7,7 +7,7 @@ uniform float viewWidth;
 
 in vec2 texcoord;
 
-/* RENDERTARGETS: 0,6 */
+/* RENDERTARGETS: 0,5 */
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 blurredHorizontal;
 

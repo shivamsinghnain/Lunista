@@ -45,7 +45,6 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
 /* RENDERTARGETS: 0,4,5 */
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 bloom;
-layout(location = 2) out vec4 brightColor;
 
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
@@ -204,8 +203,8 @@ void main() {
   #endif
 
   if (labEmissive > 0.0) {
-    brightColor = vec4(emissiveFinal, 1.0); 
+    bloom = vec4(emissiveFinal, 1.0); 
   } else {
-    brightColor = vec4(0.0);
+    bloom = vec4(0.0);
   };
 }

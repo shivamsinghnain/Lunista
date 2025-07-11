@@ -5,8 +5,6 @@ const int colortex0Format = R11F_G11F_B10F;
 */
 
 uniform sampler2D colortex0;
-uniform sampler2D colortex7; //Bloom
-uniform sampler2D colortex6; //Bloom
 uniform sampler2D colortex5; //Bloom
 uniform sampler2D depthtex0;
 
@@ -38,7 +36,7 @@ vec3 uncharted2(vec3 color) {
 
 void main() {
 	vec3 hdrScene = texture(colortex0, texcoord).rgb;
-	vec3 bloom = texture(colortex7, texcoord).rgb * BLOOM_INTENSITY;
+	vec3 bloom = texture(colortex5, texcoord).rgb * BLOOM_INTENSITY;
 
 	vec3 hdrFinalScene = hdrScene + bloom; 
 
@@ -48,5 +46,5 @@ void main() {
 
 	float depth = texture(depthtex0, texcoord).r;
 
-    color = vec4(finalScene, 1.0);
+  color = vec4(finalScene, 1.0);
 }
