@@ -21,6 +21,8 @@ void main() {
 	glcolor = gl_Color;
 
 	vNormal = gl_NormalMatrix * gl_Normal; // this gives us the normal in view space
+	normal = mat3(gbufferModelViewInverse) * vNormal; // this converts the normal to world/player space
+	
 	vNormal = mat3(gbufferModelViewInverse) * vNormal; // this gives us the normal in view space
 
 	vTangent = gl_NormalMatrix * at_tangent.xyz;
@@ -28,5 +30,5 @@ void main() {
 
 	vBitangent = cross(vTangent, vNormal) * (at_tangent.w < 0.0 ? -1.0 : 1.0);
 
-	normal = mat3(gbufferModelViewInverse) * vNormal; // this converts the normal to world/player space
+	
 }
