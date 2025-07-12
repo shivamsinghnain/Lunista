@@ -26,6 +26,7 @@ uniform sampler2D noisetex;
 uniform int worldTime;
 
 uniform vec3 shadowLightPosition;
+uniform vec3 cameraPosition;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
@@ -181,13 +182,22 @@ void main() {
 
   float labAO = encodedNormal.a;
 
-  vec3 lightPos = (gbufferModelViewInverse * vec4(shadowLightPosition, 1.0)).xyz;
-  vec3 lightDir = normalize(lightPos);
+  float specularStrength = 0.5;
+
+  vec3 lightDir = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition); // Converts shadowLightPosition to Player/Scene space.
 
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 diffuse = diff * directLightColor;
 
-  vec3 directLight = diffuse * shadow;
+  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos; 
+
+  vec3 viewDir = normalize(-eyePlayerPos);
+  vec3 reflectDir = reflect(-lightDir, normal); // scene space
+
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+  vec3 specular = specularStrength * spec * directLightColor;  
+
+  vec3 directLight = (diffuse + specular) * shadow;
 
   vec3 indirectLight = blocklight + skylight + ambient;
 
