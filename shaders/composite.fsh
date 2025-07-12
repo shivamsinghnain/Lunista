@@ -29,6 +29,7 @@ uniform vec3 shadowLightPosition;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
+uniform mat4 gbufferModelView;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
@@ -46,13 +47,14 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 bloom;
 
+bool isNight = worldTime >= 13000 && worldTime < 24000;
+
 const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 3.0;
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
-
-bool isNight = worldTime >= 13000 && worldTime < 24000;
+vec3 directLightColor = isNight ? moonlightColor : sunlightColor;
 
 const vec3 ambientColorDay = vec3(0.15);
 const vec3 ambientColorNight = vec3(0.01);
@@ -180,13 +182,15 @@ void main() {
 
   float labAO = encodedNormal.a;
 
-  vec3 sunlight;
+  // vec3 viewSpaceNormal = (gbufferModelView * vec4(feetPlayerPos, 1.0)).xyz;
 
-	if (isNight) {
-    sunlight = moonlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
-  } else {
-    sunlight = sunlightColor * clamp(dot(normal, worldLightVector), 0.0, 1.0) * shadow;
-  };
+  vec3 lightPos = (gbufferModelViewInverse * vec4(shadowLightPosition, 1.0)).xyz;
+  vec3 lightDir = normalize(lightPos);
+
+  float diff = max(dot(normal, lightDir), 0.0);
+  vec3 diffuse = diff * directLightColor;
+
+  vec3 directLight = diffuse * shadow;
 
   vec3 indirectLight = blocklight + skylight + ambient;
 
@@ -196,7 +200,7 @@ void main() {
 
   #endif
 
-	color.rgb *= indirectLight + sunlight;
+	color.rgb *= indirectLight + directLight;
 
   #ifdef materialEmissive
   color.rgb += emissiveFinal;
