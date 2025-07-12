@@ -29,7 +29,6 @@ uniform vec3 shadowLightPosition;
 
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
-uniform mat4 gbufferModelView;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
@@ -181,8 +180,6 @@ void main() {
   vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
 
   float labAO = encodedNormal.a;
-
-  // vec3 viewSpaceNormal = (gbufferModelView * vec4(feetPlayerPos, 1.0)).xyz;
 
   vec3 lightPos = (gbufferModelViewInverse * vec4(shadowLightPosition, 1.0)).xyz;
   vec3 lightDir = normalize(lightPos);
