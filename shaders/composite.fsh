@@ -182,7 +182,7 @@ void main() {
 
   float labAO = encodedNormal.a;
 
-  float specularStrength = 20;
+  float specularStrength = 0.5;
 
   vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;  // Convert frag position to scene space
   vec3 fragPos = eyePlayerPos; // Frag position in scene space
