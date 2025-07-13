@@ -182,19 +182,26 @@ void main() {
 
   float labAO = encodedNormal.a;
 
-  float specularStrength = 0.5;
+  float specularStrength = 20;
 
-  vec3 lightDir = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition); // Converts shadowLightPosition to Player/Scene space.
+  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;  // Convert frag position to scene space
+  vec3 fragPos = eyePlayerPos; // Frag position in scene space
+  vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition; // Converts shadowLightPosition to scene space.
+
+  vec3 lightDir = normalize(lightPos - fragPos);
 
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 diffuse = diff * directLightColor;
 
-  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos; 
+  vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
+  vec3 viewCameraPos = cameraPosition - eyeCameraPosition; //camera position in scene space
 
-  vec3 viewDir = normalize(-eyePlayerPos);
+  vec3 viewDir = normalize(viewCameraPos - fragPos);
   vec3 reflectDir = reflect(-lightDir, normal); // scene space
 
-  float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+  vec3 halfwayDir = normalize(lightDir + viewDir);
+
+  float spec = pow(max(dot(normal, halfwayDir), 0.0), 128);
   vec3 specular = specularStrength * spec * directLightColor;  
 
   vec3 directLight = (diffuse + specular) * shadow;
