@@ -1,5 +1,10 @@
 #version 330 compatibility
 
+/*
+const int colortex0Format = R11F_G11F_B10F;
+const int colortex5Format = R11F_G11F_B10F;
+*/
+
 uniform sampler2D colortex0;
 uniform sampler2D colortex5; // Horizontally Blurred Bloom
 

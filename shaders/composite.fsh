@@ -4,6 +4,7 @@
 
 /*
 const int colortex0Format = R11F_G11F_B10F;
+const int colortex5Format = R11F_G11F_B10F;
 */
 
 //#define materialAO
@@ -220,9 +221,11 @@ void main() {
   color.rgb += emissiveFinal;
   #endif
 
-  if (labEmissive > 0.0) {
-    bloom = vec4(emissiveFinal, 1.0); 
+  float brightness = dot(emissiveFinal.rgb, vec3(0.2126, 0.7152, 0.0722));
+
+  if (brightness > 0.05) {
+    bloom = vec4(emissiveFinal.rgb, 1.0); 
   } else {
-    bloom = vec4(0.0);
+    bloom = vec4(0.0, 0.0, 0.0, 1.0);
   };
 }

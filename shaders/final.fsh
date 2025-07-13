@@ -2,6 +2,7 @@
 
 /*
 const int colortex0Format = R11F_G11F_B10F;
+const int colortex5Format = R11F_G11F_B10F;
 */
 
 uniform sampler2D colortex0;
@@ -32,11 +33,11 @@ vec3 uncharted2(vec3 color) {
   return curr * whiteScale;
 }
 
-#define BLOOM_INTENSITY 10
+#define BLOOM_INTENSITY 1
 
 void main() {
 	vec3 hdrScene = texture(colortex0, texcoord).rgb;
-	vec3 bloom = texture(colortex5, texcoord).rgb * BLOOM_INTENSITY;
+	vec3 bloom = texture(colortex5, texcoord).rgb;
 
 	vec3 hdrFinalScene = hdrScene + bloom; 
 
