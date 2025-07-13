@@ -58,13 +58,6 @@ void main() {
         // View space
         vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 
-        // View space to wrold space
-        vec4 worldPos4 = gbufferModelViewInverse * vec4(viewPos, 1.0);
-        vec3 worldPos = worldPos4.xyz;
-
-        vec3 cameraPos = (gbufferModelViewInverse * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
-        float worldDistance = distance(worldPos, cameraPos);
-
         float dist = length(viewPos) / far;
         fogFactor = 1.0 - exp(-fogDensity * dist);
     }
