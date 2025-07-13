@@ -7,12 +7,13 @@
 5. Basic shadow mapping (shadow resolution can be changed in shader settings)
 6. Some fog
 7. BLOOM
+8. blinn-phong shading
 
 ### Future plans:
 
 1. Sky/Sunlgiht, Moonlight, fog improvements (should improve the overall feel of the shader)
-2. Specular mapping
 3. tonemap improvement
 4. You tell me (no big things for now tho as I'm still learning, so nothing RT related)
 
 God rays (tried, but they don't look good, have to do volumetric godrays instead so that'll be in far future)
+Specular mapping (better to do on Cook tollerance BRDF)
