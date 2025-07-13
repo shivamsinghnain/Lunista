@@ -14,6 +14,7 @@ uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
 uniform sampler2D colortex3;
+uniform sampler2D colortex6;
 
 uniform sampler2D depthtex0;
 
@@ -154,6 +155,7 @@ void main() {
 		return;
 	}
 
+  
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
 	vec4 encodedNormal = texture(colortex2, texcoord);
 	vec3 normal = normalize((encodedNormal.rgb - 0.5) * 2.0); // we normalize to make sure it is of unit length
@@ -172,16 +174,17 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
-  float ao = clamp(dot(normal, vec3(0.0, 1.0, 0.0)), 0.0, 1.0);
-  color.rgb *= mix(0.5, 1.0, ao);
-
   vec4 labSpecular = texture(colortex3, texcoord);
   float labEmissive = fract(labSpecular.a);
 
   vec3 emissiveColor = color.rgb;
   vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
 
-  float labAO = encodedNormal.a;
+  vec3 labNormal = texture(colortex6, texcoord).rgb;
+  float labAO = labNormal.b;
+
+  float vanillaAO = encodedNormal.a;
+  vanillaAO = pow(vanillaAO, 2.5);
 
   float specularStrength = 0.5;
 
@@ -207,7 +210,7 @@ void main() {
 
   vec3 directLight = (diffuse + specular) * shadow;
 
-  vec3 indirectLight = blocklight + skylight + ambient;
+  vec3 indirectLight = (blocklight + skylight + ambient) * vanillaAO;
 
   #ifdef materialAO
 
