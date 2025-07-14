@@ -31,6 +31,7 @@ uniform vec3 shadowLightPosition;
 uniform vec3 cameraPosition;
 
 uniform mat4 gbufferProjectionInverse;
+uniform mat4 gbufferProjection;
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
@@ -147,6 +148,39 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
   return shadowAccum / float(samples); // divide sum by count, getting average shadow
 }
 
+vec3 volumetricGodrays(vec2 texcoord, vec2 ScreenLightPos)
+{
+  const int NUM_SAMPLES = 80;
+  const float DENSITY = 0.96;
+  const float DECAY = 0.93;
+  const float WEIGHT = 0.4;
+  const float EXPOSURE = 0.15;
+
+  // Calculate vector from pixel to light source in screen space.
+  vec2 deltaTexCoord = (texcoord - ScreenLightPos.xy);
+  // Divide by number of samples and scale by control factor.
+  deltaTexCoord *= 1.0 / NUM_SAMPLES * DENSITY;
+  // Set up illumination decay factor.
+  float illuminationDecay = 1.0;
+  float sum = 0.0;
+
+  // Evaluate summation from Equation 3 NUM_SAMPLES iterations.
+  for (int i = 0; i < NUM_SAMPLES; i++)
+  {
+    // Step sample location along ray.
+    texcoord -= deltaTexCoord;
+    // Retrieve sample at new location.
+    float gSample = texture(depthtex0, texcoord).r;
+    // Apply sample attenuation scale/decay factors.
+    float occlusion = (gSample == 1.0) ? 1.0 : 0.0;
+    sum += occlusion * illuminationDecay * WEIGHT;
+    // Update exponential decay factor.
+    illuminationDecay *= DECAY;
+  }
+  // Output final color with a further scale control factor.
+  return vec3(sum * EXPOSURE);
+}
+
 void main() {
 	color = texture(colortex0, texcoord);
 
@@ -223,6 +257,15 @@ void main() {
   #ifdef materialEmissive
   color.rgb += emissiveFinal;
   #endif
+
+  vec4 sunClip = gbufferProjection * vec4(shadowLightPosition, 1.0);
+  vec3 sunNDC = sunClip.xyz / sunClip.w;
+  vec2 sunScreen = sunNDC.xy * 0.5 + 0.5;
+
+  vec3 godrays = volumetricGodrays(texcoord, sunScreen);
+  godrays * directLightColor;
+
+  color.rgb += godrays;
 
   float brightness = dot(emissiveFinal.rgb, vec3(0.2126, 0.7152, 0.0722));
 
