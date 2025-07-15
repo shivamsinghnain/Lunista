@@ -51,7 +51,7 @@ layout(location = 1) out vec4 bloom;
 
 bool isNight = worldTime >= 13000 && worldTime < 24000;
 
-const vec3 blocklightColor = vec3(1.0, 0.5, 0.08);
+const vec3 blocklightColor = vec3(1.0, 0.6, 0.2);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
 const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 3.0;
@@ -63,6 +63,7 @@ const vec3 ambientColorNight = vec3(0.01);
 vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
 
 #define EMISSIVE_INTENSITY 7.5 // [1-10]
+#define SPECULAR_STRENGTH 0.5 // [0-1]
 
 vec3 getShadow(vec3 shadowScreenPos){
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r); // sample the shadow map containing everything
@@ -151,17 +152,14 @@ void main() {
 	color = texture(colortex0, texcoord);
 
 	float depth = texture(depthtex0, texcoord).r;
+  
 	if (depth == 1.0) {
 		return;
 	}
 
-  
 	vec2 lightmap = texture(colortex1, texcoord).rg; // we only need the r and g components
 	vec4 encodedNormal = texture(colortex2, texcoord);
 	vec3 normal = normalize((encodedNormal.rgb - 0.5) * 2.0); // we normalize to make sure it is of unit length
-
-	vec3 lightVector = normalize(shadowLightPosition);
-	vec3 worldLightVector = mat3(gbufferModelViewInverse) * lightVector;
 
 	vec3 blocklight = lightmap.r * blocklightColor;
 	vec3 skylight = lightmap.g * (isNight ? vec3(0.01, 0.01, 0.02) : skylightColor);
@@ -174,39 +172,42 @@ void main() {
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
-  vec4 labSpecular = texture(colortex3, texcoord);
-  float labEmissive = fract(labSpecular.a);
-
-  vec3 emissiveColor = color.rgb;
-  vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
-
+  // LabPBR Ambient Occlusion
   vec3 labNormal = texture(colortex6, texcoord).rgb;
   float labAO = labNormal.b;
 
+  // Vanilla Ambient Occlusion
   float vanillaAO = encodedNormal.a;
   vanillaAO = pow(vanillaAO, 2.5);
 
-  float specularStrength = 0.5;
+  // Convert frag position to scene space
+  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;  
+  vec3 fragPos = eyePlayerPos;
 
-  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;  // Convert frag position to scene space
-  vec3 fragPos = eyePlayerPos; // Frag position in scene space
-  vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition; // Converts shadowLightPosition to scene space.
+  // Converts shadowLightPosition to scene space.
+  vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition; 
 
   vec3 lightDir = normalize(lightPos - fragPos);
 
   float diff = max(dot(normal, lightDir), 0.0);
   vec3 diffuse = diff * directLightColor;
 
+  // Camera position in scene space
   vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
-  vec3 viewCameraPos = cameraPosition - eyeCameraPosition; //camera position in scene space
+  vec3 viewCameraPos = cameraPosition - eyeCameraPosition; 
 
   vec3 viewDir = normalize(viewCameraPos - fragPos);
-  vec3 reflectDir = reflect(-lightDir, normal); // scene space
 
   vec3 halfwayDir = normalize(lightDir + viewDir);
 
+  vec4 labSpecular = texture(colortex3, texcoord);
+  float labEmissive = fract(labSpecular.a);
+
+  vec3 emissiveColor = color.rgb;
+  vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
+
   float spec = pow(max(dot(normal, halfwayDir), 0.0), 128);
-  vec3 specular = specularStrength * spec * directLightColor;  
+  vec3 specular = SPECULAR_STRENGTH * spec * directLightColor;  
 
   vec3 directLight = (diffuse + specular) * shadow;
 
@@ -226,7 +227,7 @@ void main() {
 
   float brightness = dot(emissiveFinal.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-  if (brightness > 0.05) {
+  if (brightness > 1) {
     bloom = vec4(emissiveFinal.rgb, 1.0); 
   } else {
     bloom = vec4(0.0, 0.0, 0.0, 1.0);
