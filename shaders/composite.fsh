@@ -14,7 +14,7 @@ uniform sampler2D colortex0;
 uniform sampler2D colortex1;
 uniform sampler2D colortex2;
 uniform sampler2D colortex3;
-uniform sampler2D colortex6;
+uniform sampler2D colortex12;
 
 uniform sampler2D depthtex0;
 
@@ -173,7 +173,7 @@ void main() {
 	vec3 shadow = getSoftShadow(shadowClipPos, normal);
 
   // LabPBR Ambient Occlusion
-  vec3 labNormal = texture(colortex6, texcoord).rgb;
+  vec3 labNormal = texture(colortex12, texcoord).rgb;
   float labAO = labNormal.b;
 
   // Vanilla Ambient Occlusion
@@ -227,7 +227,7 @@ void main() {
 
   float brightness = dot(emissiveFinal.rgb, vec3(0.2126, 0.7152, 0.0722));
 
-  if (brightness > 1.0) {
+  if (brightness > 0.04 && brightness < 5.0) {
     bloom = vec4(emissiveFinal.rgb, 1.0); 
   } else {
     bloom = vec4(0.0, 0.0, 0.0, 1.0);

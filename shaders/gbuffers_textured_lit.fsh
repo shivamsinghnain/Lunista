@@ -17,7 +17,7 @@ in vec3 vNormal;
 in vec3 vTangent;
 in vec3 vBitangent;
 
-/* RENDERTARGETS: 0,1,2,3,6 */
+/* RENDERTARGETS: 0,1,2,3,12 */
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 lightmapData;
 layout(location = 2) out vec4 encodedNormal;
