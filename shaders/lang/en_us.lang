@@ -9,3 +9,7 @@ option.materialEmissive=Resource Pack Emission
 
 screen.TERRAIN=Terrain
 option.normalMapping=Normal Mapping
+
+screen.CAMERA=Camera
+screen.BLOOM=Bloom
+option.BLOOM_INTENSITY=Bloom Intensity
