@@ -33,11 +33,15 @@ vec3 uncharted2(vec3 color) {
   return curr * whiteScale;
 }
 
+#define BLOOM_INTENSITY 1.0
+
 void main() {
 	vec3 hdrScene = texture(colortex0, texcoord).rgb;
 	vec3 bloom = texture(colortex5, texcoord).rgb;
 
-	vec3 hdrFinalScene = hdrScene + bloom; 
+  vec3 finalBloom = bloom * BLOOM_INTENSITY;
+
+	vec3 hdrFinalScene = hdrScene + finalBloom;
 
 	vec3 hdrFinal = uncharted2(hdrFinalScene);
 
