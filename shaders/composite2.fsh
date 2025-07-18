@@ -27,4 +27,6 @@ void main() {
   // vec2 uv = texcoord * 2.0;
   vec2 uv = texcoord;
   bloomTile = vec4(downsample(colortex5, uv, texelSize), 1.0);
+
+  bloomTile = max(bloomTile, 0.00001); // Prevent zero bloom tiles
 }
