@@ -54,7 +54,7 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const vec3 blocklightColor = vec3(1.0, 0.6, 0.2);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
-const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 3.0;
+const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 20.0;
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3);
 vec3 directLightColor = isNight ? moonlightColor : sunlightColor;
 
@@ -63,7 +63,8 @@ const vec3 ambientColorNight = vec3(0.01);
 vec3 ambient = isNight ? ambientColorNight : ambientColorDay;
 
 #define EMISSIVE_INTENSITY 7.5 // [1-10]
-#define SPECULAR_STRENGTH 0.5 // [0-1]
+
+const float pi = 3.14159265358979323846;
 
 vec3 getShadow(vec3 shadowScreenPos){
   float transparentShadow = step(shadowScreenPos.z, texture(shadowtex0, shadowScreenPos.xy).r); // sample the shadow map containing everything
@@ -148,6 +149,84 @@ vec3 getSoftShadow(vec4 shadowClipPos, vec3 normal){
   return shadowAccum / float(samples); // divide sum by count, getting average shadow
 }
 
+
+// Distribution (D)
+float distributionGGX(float NoH, float roughness) {
+
+  float a = roughness * roughness;
+  float a2 = a * a;
+
+  float NoH2 = NoH * NoH;
+
+  float b = (NoH2 * (a2 - 1.0) + 1.0);
+
+  float nom = a2;
+  float denom = pi * (b * b);
+
+  return nom / denom;
+}
+
+// Fresnal (F)
+vec3 Fschlick(float cosTheta, vec3 f0) {
+  return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
+}
+
+
+// Geometry (G)
+float kDirect(float a) {
+  float k2 = (a + 1.0) * (a + 1.0);
+  return k2 / 8.0;
+}
+
+float schlickGGX(float NoV, float k) {
+
+  float a = k * k;
+  float aK = a / 2.0;
+  return max(NoV, 0.0001) / (NoV * (1.0 - aK) + aK);
+}
+
+float geometrySmith(float NoV, float NoL, float k)
+{
+    float ggx1 = schlickGGX(NoL, k);
+    float ggx2 = schlickGGX(NoV, k);
+	
+    return ggx1 * ggx2;
+}
+
+vec3 BRDF(vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, vec3 albedo, float metallic) {
+
+  vec3 h = normalize(v + l);
+
+  float NoV = max(dot(n, v), 0.0);
+  float NoL = max(dot(n, l), 0.0);
+  float NoH = max(dot(n, h), 0.0);
+  float VoH = max(dot(v, h), 0.0);
+
+  float k = kDirect(roughness);
+
+  float D = distributionGGX(NoH, roughness);
+  vec3 F = Fschlick(VoH, f0);
+  float G = geometrySmith(NoV, NoL, k);
+
+  vec3 spec = (D * F * G) / (4.0 * max(NoV, 0.0001) * max(NoL, 0.0001)); // 0.0001 to avoid division by zero
+
+  // vec3 kS = F;
+  // vec3 kD = vec3(1.0) - kS;
+  // kD *= 1.0 - metallic; // if metallic, we don't use diffuse
+
+  vec3 rhoD = albedo;
+
+  rhoD *= vec3(1.0 - F);
+  rhoD *= 1.0 - metallic; // if metallic, we don't use diffuse
+
+  vec3 diff = rhoD / pi * NoL; // lambertian diffuse
+
+
+  // vec3 diffuse = kD * diff;
+
+  return diff + spec;
+}
+
 void main() {
 	color = texture(colortex0, texcoord);
 
@@ -187,29 +266,45 @@ void main() {
   // Converts shadowLightPosition to scene space.
   vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition; 
 
-  vec3 lightDir = normalize(lightPos - fragPos);
-
-  float diff = max(dot(normal, lightDir), 0.0);
-  vec3 diffuse = diff * directLightColor;
-
   // Camera position in scene space
   vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
   vec3 viewCameraPos = cameraPosition - eyeCameraPosition; 
 
+  vec3 lightDir = normalize(lightPos - fragPos);
   vec3 viewDir = normalize(viewCameraPos - fragPos);
-
-  vec3 halfwayDir = normalize(lightDir + viewDir);
 
   vec4 labSpecular = texture(colortex3, texcoord);
   float labEmissive = fract(labSpecular.a);
 
+  float labRoughness = labSpecular.r;
+  labRoughness = pow(1.0 - labRoughness, 2.0); // Convert to linear roughness
+
   vec3 emissiveColor = color.rgb;
   vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
 
-  float spec = pow(max(dot(normal, halfwayDir), 0.0), 128);
-  vec3 specular = SPECULAR_STRENGTH * spec * directLightColor;  
+  float metallic = labSpecular.g >= 230.0 ? 1.0 : 0.0;
 
-  vec3 directLight = (diffuse + specular) * shadow;
+  vec3 metalF0;
+  if (labSpecular.g == 230.0) {
+    metalF0 = vec3(0.560, 0.570, 0.580); // Iron 
+  } else if (labSpecular.g == 231.0) {
+    metalF0 = vec3(1.000, 0.710, 0.290); // Gold
+  } else if (labSpecular.g == 232.0) {
+    metalF0 = vec3(0.910, 0.920, 0.920); // Aluminum
+  } else if (labSpecular.g == 234.0) {
+    metalF0 = vec3(0.950, 0.640, 0.540); // Copper
+  } else {
+    metalF0 = color.rgb;
+  }
+
+  vec3 labF0 = metallic < 0.5 ? vec3(labSpecular.g / 229.0) : metalF0;
+  // vec3 f0 = mix(labF0, color.rgb, metallic);
+
+  vec3 albedo = color.rgb;
+
+  vec3 brdfMicrofacet = BRDF(normal, viewDir, lightDir, labRoughness, labF0, albedo, metallic) * directLightColor;  
+
+  vec3 directLight = brdfMicrofacet * shadow;
 
   vec3 indirectLight = (blocklight + skylight + ambient) * vanillaAO;
 
