@@ -54,7 +54,7 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const vec3 blocklightColor = vec3(1.0, 0.6, 0.2);
 const vec3 skylightColor = vec3(0.05, 0.15, 0.3);
 
-const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 20;
+const vec3 sunlightColor = vec3(1.0, 0.95, 0.8) * 10;
 const vec3 moonlightColor = vec3(0.1, 0.1, 0.3) * 20;
 vec3 directLightColor = isNight ? moonlightColor : sunlightColor;
 
@@ -168,40 +168,36 @@ float distributionGGX(float NoH, float roughness) {
 
 // Fresnal (F)
 vec3 Fschlick(float cosTheta, vec3 f0) {
-  return f0 + (1.0 - f0) * pow(1.0 - cosTheta, 5.0);
+  return f0 + (1.0 - f0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
+float Gggx(float NoV, float roughness) {
+  float num = 2.0 * NoV;
 
-// Geometry (G)
-float kDirect(float a) {
-  float k2 = (a + 1.0) * (a + 1.0);
-  return k2 / 8.0;
+  float a = roughness * roughness;
+  float a2 = a * a;
+
+  float NoV2 = NoV * NoV;
+
+  float denom = max(NoV, 0.0001) + sqrt(a2 + (1.0 - a2) * NoV2);
+  return num / denom;
 }
 
-// float schlickGGX(float NoV, float k) {
-
-//   float a = k * k;
-//   float aK = a / 2.0;
-//   return max(NoV, 0.0001) / (NoV * (1.0 - aK) + aK);
-// }
-
-float Gggx(float NoV, float alpha) {
-  float nom = 2.0 * NoV;
-  float a2 = alpha * alpha;
-
-  float denom = max(NoV, 0.0001) + sqrt(a2 + (1.0 - a2) * (NoV * NoV));
-  return nom / denom;
-}
-
-float geometrySmith(float NoV, float NoL, float k)
-{
-    float ggx1 = Gggx(NoV, k);
-    float ggx2 = Gggx(NoL, k);
+float geometrySmith(float NoV, float NoL, float roughness) {
+    float ggx1 = Gggx(NoV, roughness);
+    float ggx2 = Gggx(NoL, roughness);
 	
     return ggx1 * ggx2;
 }
 
-vec3 BRDF(vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, vec3 albedo, float metallic) {
+vec3 BRDF(vec3 currentLight, vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, vec3 albedo, float metallic) {
+
+  vec3 Lo = vec3(0.0);
+  
+  //calculate light radiance
+  float dist = length(l);
+  float attenuation = 1.0 / (dist * dist);
+  vec3 radiance = currentLight * attenuation; 
 
   vec3 h = normalize(v + l);
 
@@ -210,7 +206,6 @@ vec3 BRDF(vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, vec3 albedo, float m
   float NoH = max(dot(n, h), 0.0);
   float VoH = max(dot(v, h), 0.0);
 
-  float k = kDirect(roughness);
 
   float D = distributionGGX(NoH, roughness);
   vec3 F = Fschlick(VoH, f0);
@@ -218,25 +213,18 @@ vec3 BRDF(vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, vec3 albedo, float m
 
   vec3 spec = (D * F * G) / (4.0 * max(NoV, 0.0001) * max(NoL, 0.0001)); // 0.0001 to avoid division by zero
 
-  // vec3 kS = F;
-  // vec3 kD = vec3(1.0) - kS;
-  // kD *= 1.0 - metallic; // if metallic, we don't use diffuse
+  vec3 kS = F;
+  vec3 kD = vec3(1.0) - kS;
+  kD *= 1.0 - metallic;
 
-  vec3 rhoD = albedo;
+  Lo += (kD * albedo / pi + spec) * radiance * NoL;
 
-  rhoD *= vec3(1.0 - F);
-  rhoD *= 1.0 - metallic; // if metallic, we don't use diffuse
-
-  vec3 diff = rhoD / pi * NoL; // lambertian diffuse
-
-
-  // vec3 diffuse = kD * diff;
-
-  return diff + spec;
+  return Lo;
 }
 
 void main() {
 	color = texture(colortex0, texcoord);
+  vec3 albedo = color.rgb;
 
 	float depth = texture(depthtex0, texcoord).r;
   
@@ -282,38 +270,39 @@ void main() {
   vec3 viewDir = normalize(viewCameraPos - fragPos);
 
   vec4 labSpecular = texture(colortex3, texcoord);
-  float labEmissive = fract(labSpecular.a);
 
   float labRoughness = labSpecular.r;
   labRoughness = pow(1.0 - labRoughness, 2.0); // Convert to linear roughness
 
-  vec3 emissiveColor = color.rgb;
+  float labSpecG = labSpecular.g * 255.0;
+
+  float metallic = (labSpecG >= 230.0) ? 1.0 : 0.0;
+
+  vec3 labF0 = vec3(clamp(labSpecular.g, 0.04, 229.0 / 255.0));
+
+  vec3 labHCM;
+  if (labSpecG == 230.0) {
+    labHCM = vec3(0.560, 0.570, 0.580); // Iron 
+  } else if (labSpecG == 231.0) {
+    labHCM = vec3(1.000, 0.710, 0.290); // Gold
+  } else if (labSpecG == 232.0) {
+    labHCM = vec3(0.910, 0.920, 0.920); // Aluminum
+  } else if (labSpecG == 234.0) {
+    labHCM = vec3(0.950, 0.640, 0.540); // Copper
+  } else {
+    labHCM = albedo;
+  }
+  
+  vec3 F0 = metallic == 1.0 ? labHCM : labF0;
+
+  float labEmissive = fract(labSpecular.a);
+
+  vec3 emissiveColor = albedo;
   vec3 emissiveFinal = emissiveColor * labEmissive * EMISSIVE_INTENSITY;
 
-  float metallic = labSpecular.g >= (230.0/255) ? 1.0 : 0.0;
-
-  vec3 metalF0;
-  if (labSpecular.g == 230.0) {
-    metalF0 = vec3(0.560, 0.570, 0.580); // Iron 
-  } else if (labSpecular.g == 231.0) {
-    metalF0 = vec3(1.000, 0.710, 0.290); // Gold
-  } else if (labSpecular.g == 232.0) {
-    metalF0 = vec3(0.910, 0.920, 0.920); // Aluminum
-  } else if (labSpecular.g == 234.0) {
-    metalF0 = vec3(0.950, 0.640, 0.540); // Copper
-  } else {
-    metalF0 = color.rgb;
-  }
-
-  vec3 labF0 = metallic < 0.5 ? vec3(labSpecular.g / (229.0/255)) : metalF0;
-  // vec3 f0 = mix(labF0, color.rgb, metallic);
-
-  vec3 albedo = color.rgb;
-
-  vec3 brdfMicrofacet = BRDF(normal, lightDir, viewDir, labRoughness, labF0, albedo, metallic) * directLightColor;  
+  vec3 brdfMicrofacet = BRDF(directLightColor, normal, lightDir, viewDir, labRoughness, F0, albedo, metallic);
 
   vec3 directLight = brdfMicrofacet * shadow;
-
   vec3 indirectLight = (blocklight + skylight + ambient) * vanillaAO;
 
   #ifdef materialAO
@@ -322,7 +311,7 @@ void main() {
 
   #endif
 
-	color.rgb *= indirectLight + directLight;
+  color.rgb *= indirectLight + directLight;
 
   #ifdef materialEmissive
   color.rgb += emissiveFinal;
