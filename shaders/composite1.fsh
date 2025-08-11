@@ -1,4 +1,4 @@
-#version 330 compatibility
+#version 450 core
 
 #include "/lib/distort.glsl"
 
@@ -8,7 +8,7 @@ const int colortex0Format = R11F_G11F_B10F;
 
 uniform sampler2D colortex0;
 
-uniform sampler2D depthtex0;
+uniform sampler2D mainDepthTex;
 
 uniform int worldTime;
 
@@ -35,7 +35,7 @@ const float fogDensityNight = 1.5;
 void main() {
     color = texture(colortex0, texcoord);
 
-    float depth = texture(depthtex0, texcoord).r;
+    float depth = texture(mainDepthTex, texcoord).r;
     float fogFactor;
 
     bool isNight = worldTime >= 13000 && worldTime < 24000;

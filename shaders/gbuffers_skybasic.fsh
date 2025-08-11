@@ -1,4 +1,4 @@
-#version 330 compatibility
+#version 450 core
 
 uniform int renderStage;
 uniform float viewHeight;
@@ -9,6 +9,8 @@ uniform vec3 fogColor;
 uniform vec3 skyColor;
 
 in vec4 glcolor;
+
+#define MC_RENDER_STAGE_STARS
 
 float fogify(float x, float w) {
 	return w / (x * x + w);
@@ -29,10 +31,13 @@ vec3 screenToView(vec3 screenPos) {
 layout(location = 0) out vec4 color;
 
 void main() {
-	if (renderStage == MC_RENDER_STAGE_STARS) {
-		color = glcolor;
-	} else {
-		vec3 pos = screenToView(vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0));
-		color = vec4(calcSkyColor(normalize(pos)), 1.0);
-	}
+	// if (renderStage == MC_RENDER_STAGE_STARS) {
+	// 	color = glcolor;
+	// } else {
+	// 	vec3 pos = screenToView(vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0));
+	// 	color = vec4(calcSkyColor(normalize(pos)), 1.0);
+	// }
+
+	vec3 pos = screenToView(vec3(gl_FragCoord.xy / vec2(viewWidth, viewHeight), 1.0));
+	color = vec4(calcSkyColor(normalize(pos)), 1.0);
 }

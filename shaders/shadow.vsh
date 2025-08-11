@@ -1,6 +1,6 @@
-#version 330 compatibility
+#version 450 core
 
-#include /lib/distort.glsl
+#include "/lib/distort.glsl"
 
 out vec2 texcoord;
 out vec4 glcolor;

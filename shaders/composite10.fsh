@@ -1,6 +1,6 @@
-#version 330 compatibility
+#version 450 core
 
-#include /lib/upsample.glsl
+#include "/lib/upsample.glsl"
 
 /*
 const int colortex6Format = R11F_G11F_B10F;

@@ -1,4 +1,4 @@
-#version 330 compatibility
+#version 450 core
 
 in vec4 at_tangent;
 

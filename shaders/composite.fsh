@@ -1,6 +1,6 @@
-#version 330 compatibility
+#version 450 core
 
-#include /lib/distort.glsl
+#include "/lib/distort.glsl"
 
 /*
 const int colortex0Format = R11F_G11F_B10F;
@@ -16,7 +16,7 @@ uniform sampler2D colortex2;
 uniform sampler2D colortex3;
 uniform sampler2D colortex12;
 
-uniform sampler2D depthtex0;
+uniform sampler2D mainDepthTex;
 
 uniform sampler2D shadowtex0;
 uniform sampler2D shadowtex1;
@@ -226,7 +226,7 @@ void main() {
 	color = texture(colortex0, texcoord);
   vec3 albedo = color.rgb;
 
-	float depth = texture(depthtex0, texcoord).r;
+	float depth = texture(mainDepthTex, texcoord).r;
   
 	if (depth == 1.0) {
 		return;

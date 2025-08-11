@@ -1,4 +1,4 @@
-#version 330 compatibility
+#version 450 core
 
 /*
 const int colortex0Format = R11F_G11F_B10F;

@@ -1,6 +1,6 @@
-#version 330 compatibility
+#version 450 core
 
-#include /lib/downsample.glsl
+#include "/lib/downsample.glsl"
 
 /*
 const int colortex5Format = R11F_G11F_B10F;
