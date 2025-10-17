@@ -20,10 +20,10 @@ void main() {
 	lmcoord = (lmcoord * 33.05 / 32.0) - (1.05 / 32.0);
 	glcolor = gl_Color;
 
-	vNormal = gl_NormalMatrix * gl_Normal; // this gives us the normal in view space
-	normal = mat3(gbufferModelViewInverse) * vNormal; // this converts the normal to world/player space
+	vNormal = gl_NormalMatrix * gl_Normal;
+	normal = mat3(gbufferModelViewInverse) * vNormal; 
 	
-	vNormal = mat3(gbufferModelViewInverse) * vNormal; // this gives us the normal in view space
+	vNormal = mat3(gbufferModelViewInverse) * vNormal; 
 
 	vTangent = gl_NormalMatrix * at_tangent.xyz;
 	vTangent = mat3(gbufferModelViewInverse) * vTangent; // this gives us the normal in view space
