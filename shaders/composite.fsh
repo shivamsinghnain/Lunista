@@ -31,12 +31,14 @@ uniform vec3 shadowLightPosition;
 uniform vec3 cameraPosition;
 
 uniform mat4 gbufferProjectionInverse;
+uniform mat4 gbufferProjection;
 uniform mat4 gbufferModelViewInverse;
 uniform mat4 shadowModelView;
 uniform mat4 shadowProjection;
 
 uniform float viewWidth;
 uniform float viewHeight;
+uniform float far;
 
 in vec2 texcoord;
 
@@ -222,6 +224,46 @@ vec3 BRDF(vec3 currentLight, vec3 n, vec3 l, vec3 v, float roughness, vec3 f0, v
   return Lo;
 }
 
+
+
+vec3 getWorldPos(vec2 uv, float depth) {
+  vec3 NDCPos = vec3(uv.xy, depth) * 2.0 - 1.0;
+  vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
+  vec3 worldPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+  return worldPos;
+}
+
+// vec3 raymerch(vec2 uv) {
+//   vec2 deltaUV = (uv - normalize(shadowLightPosition.xy));
+  // deltaUV *= 1.0 / NUM_SAMPLES * Density;
+  
+//   float illuminationDecay = 1.0;
+
+//   for (int i = 0; i < NUM_SAMPLES; i++) {
+//     uv -= deltaUV;
+//   }
+// }
+
+vec3 viewToScreenPos(vec3 viewPos) {
+  vec3 screenPos = projectAndDivide(gbufferProjection, viewPos);
+  screenPos = screenPos * 0.5 + 0.5;
+
+  return screenPos;
+}
+
+// vec3 godrays () {
+//   // scattering = vec3(0.0);
+
+  
+
+// }
+
+#define NUM_SAMPLES 150
+#define DENSITY 1.0
+#define WEIGHT 0.01
+#define DECAY 1.0
+#define EXPOSURE 1.0
+
 void main() {
 	color = texture(colortex0, texcoord);
   vec3 albedo = color.rgb;
@@ -302,7 +344,33 @@ void main() {
 
   vec3 brdfMicrofacet = BRDF(directLightColor, normal, lightDir, viewDir, labRoughness, F0, albedo, metallic);
 
+  // UV
+  vec2 sampleCoord = texcoord;
+  // Taking planet position to screen space
+  vec3 planetScreenPos = normalize(shadowLightPosition);
+  planetScreenPos = viewToScreenPos(planetScreenPos);
+
+  // Godrays
+  vec2 deltaTexCoord = sampleCoord - planetScreenPos.xy;
+  deltaTexCoord *= 1.0 / NUM_SAMPLES * DENSITY;
+
+  // vec3 colorSample = texture(colortex0, sampleCoord).rgb;
+
+  float decay = 1.0;
+
+  for (int i = 0; i < NUM_SAMPLES; i++) {
+    sampleCoord -= deltaTexCoord;
+
+    vec3 currentSample = texture(colortex0, sampleCoord).rgb;
+    currentSample *= decay * WEIGHT;
+    color.rgb += currentSample;
+    decay *= DECAY;
+  }
+
+  color.rgb *= EXPOSURE;
+
   vec3 directLight = brdfMicrofacet * shadow;
+
   vec3 indirectLight = (blocklight + skylight + ambient) * vanillaAO;
 
   #ifdef materialAO
