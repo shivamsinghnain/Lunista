@@ -3,7 +3,7 @@
 #include "/lib/distort.glsl"
 
 /*
-const int colortex0Format = R11F_G11F_B10F;
+const int colortex0Format = RGB16F;
 */
 
 uniform sampler2D colortex0;

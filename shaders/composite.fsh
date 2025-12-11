@@ -3,8 +3,8 @@
 #include /lib/distort.glsl
 
 /*
-const int colortex0Format = R11F_G11F_B10F;
-const int colortex5Format = R11F_G11F_B10F;
+const int colortex0Format = RGB16F;
+const int colortex5Format = RGB16F;
 */
 
 //#define materialAO

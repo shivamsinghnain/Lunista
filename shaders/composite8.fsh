@@ -3,8 +3,8 @@
 #include /lib/upsample.glsl
 
 /*
-const int colortex8Format = R11F_G11F_B10F;
-const int colortex9Format = R11F_G11F_B10F;
+const int colortex8Format = RGB16F;
+const int colortex9Format = RGB16F;
 */
 
 uniform sampler2D colortex8;    // Current level bloom

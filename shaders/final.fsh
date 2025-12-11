@@ -1,8 +1,10 @@
 #version 330 compatibility
 
+#include /lib/tonemap.glsl
+
 /*
-const int colortex0Format = R11F_G11F_B10F;
-const int colortex5Format = R11F_G11F_B10F;
+const int colortex0Format = RGB16F;
+const int colortex5Format = RGB16F;
 */
 
 //#define BLOOM
@@ -49,7 +51,7 @@ void main() {
   hdrFinalScene = hdrScene + finalBloom;
   #endif
 
-	vec3 hdrFinal = uncharted2(hdrFinalScene);
+	vec3 hdrFinal = neutral(hdrFinalScene);
 
 	vec3 finalScene = pow(hdrFinal, vec3(1.0 / 2.2));
 

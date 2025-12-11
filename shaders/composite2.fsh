@@ -3,7 +3,7 @@
 #include /lib/downsample.glsl
 
 /*
-const int colortex5Format = R11F_G11F_B10F;
+const int colortex5Format = RGB16F;
 */
 
 uniform sampler2D colortex5; // Bright emissive extracted
