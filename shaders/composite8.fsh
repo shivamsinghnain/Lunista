@@ -1,6 +1,6 @@
 #version 330 compatibility
 
-#include /lib/upsample.glsl
+#include "/lib/upsample.glsl"
 
 /*
 const int colortex8Format = RGB16F;
