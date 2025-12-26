@@ -4,12 +4,12 @@ in vec4 at_tangent;
 
 out vec2 lmcoord;
 out vec2 texcoord;
-out vec4 glcolor;
-out vec3 normal;
+out vec3 glcolor;
+out float occlusion;
 
-out vec3 vTangent;
-out vec3 vBitangent;
-out vec3 vNormal;
+out vec3 tangent;
+out vec3 bitangent;
+out vec3 normal;
 
 uniform mat4 gbufferModelViewInverse;
 
@@ -18,17 +18,14 @@ void main() {
 	texcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
 	lmcoord = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
 	lmcoord = (lmcoord * 33.05 / 32.0) - (1.05 / 32.0);
-	glcolor = gl_Color;
+	glcolor = gl_Color.rgb;
+	occlusion = gl_Color.a;
 
-	vNormal = gl_NormalMatrix * gl_Normal;
-	normal = mat3(gbufferModelViewInverse) * vNormal; 
-	
-	vNormal = mat3(gbufferModelViewInverse) * vNormal; 
+	normal = gl_NormalMatrix * gl_Normal;
+	normal = mat3(gbufferModelViewInverse) * normal; // this gives us normal in player space;
 
-	vTangent = gl_NormalMatrix * at_tangent.xyz;
-	vTangent = mat3(gbufferModelViewInverse) * vTangent; // this gives us the normal in view space
+	tangent = gl_NormalMatrix * at_tangent.xyz;
+	tangent = mat3(gbufferModelViewInverse) * tangent; // this gives us the tangent in player space
 
-	vBitangent = cross(vTangent, vNormal) * (at_tangent.w < 0.0 ? -1.0 : 1.0);
-
-	
+	bitangent = cross(tangent, normal) * (at_tangent.w < 0.0 ? -1.0 : 1.0);
 }

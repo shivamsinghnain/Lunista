@@ -60,5 +60,5 @@ void main() {
     }
 
     fogFactor = smoothstep(0.0, 1.0, fogFactor);
-    color.rgb = mix(color.rgb, finalFogColor, fogFactor);
+    // color.rgb = mix(color.rgb, finalFogColor, fogFactor);
 }
