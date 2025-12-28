@@ -67,7 +67,8 @@ void main() {
   // Sample labPBR specular map
   vec4 labSpecular = texture(colortex4, texcoord);
   float roughness = max(labSpecular.r, 0.04);
-  float reflectance = clamp(labSpecular.g * 255.0, 0.0, 229.0) / 229.0;
+  // float reflectance = clamp(labSpecular.g * 255.0, 0.0, 229.0) / 229.0;
+  float reflectance = labSpecular.g;
 
 	vec3 blocklight = lightmap.r * blocklightColor;
 	vec3 skylight = lightmap.g * skylightColor;

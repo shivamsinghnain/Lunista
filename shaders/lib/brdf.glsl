@@ -154,7 +154,7 @@ vec3 computeBRDF(in vec3 N, in vec3 V, in vec3 L, in vec3 albedo, in float refle
 
         F = fresnalLazanyi2019(cosTheta, F0, F82);
     } else if (conductor <= 229 && conductor >= 1) {
-        F0 = vec3(reflectance);
+        F0 = vec3(clamp(reflectance * 255.0, 0.0, 229.0) / 229.0);
 
         F = fresnalSchlick(cosTheta, F0);
     } else {
