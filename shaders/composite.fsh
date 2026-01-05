@@ -74,27 +74,23 @@ void main() {
 	vec3 skylight = lightmap.g * skylightColor;
   vec3 ambient = ambientColor;
 
+ // space conversions
 	vec3 NDCPos = vec3(texcoord.xy, depth) * 2.0 - 1.0;
 	vec3 viewPos = projectAndDivide(gbufferProjectionInverse, NDCPos);
 	vec3 feetPlayerPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+  vec3 eyePlayerPos = feetPlayerPos - gbufferModelViewInverse[3].xyz;  
+
+  // Shadow
 	vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
 	vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, encodedNormal.rgb);
 
-  // Convert frag position to player space
-  vec3 eyePlayerPos = mat3(gbufferModelViewInverse) * viewPos;  
-  vec3 fragPos = eyePlayerPos;
-
   // Converts shadowLightPosition to player space.
   vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition;
+  vec3 lightDir = normalize(lightPos);
 
-  // Camera position in player space
-  vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
-  vec3 viewCameraPos = cameraPosition - eyeCameraPosition; 
-
-  vec3 lightDir = normalize(lightPos - fragPos);
-  vec3 viewDir = normalize(viewCameraPos - fragPos);
+  vec3 viewDir = normalize(-eyePlayerPos);
 
   vec3 brdf = computeBRDF(labNormal.rgb, viewDir, lightDir, color.rgb, reflectance, roughness, planetLight);
 
