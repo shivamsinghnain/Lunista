@@ -45,9 +45,9 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
 
 void main() {
 	color = texture(colortex0, texcoord);
+
 	float depth = texture(depthtex0, texcoord).r;
-  
-	if (depth == 1.0) {
+	if (depth >= 1.0) {
 		return;
 	}
 
@@ -95,7 +95,7 @@ void main() {
   vec3 brdf = computeBRDF(labNormal.rgb, viewDir, lightDir, color.rgb, reflectance, roughness, planetLight);
 
   vec3 dirLight = brdf * shadow;
-  vec3 indirLight = (blocklight + skylight + ambient) * vanillaAO * labAO;
+  vec3 indirLight = vec3(vanillaAO * labAO);
 
   color.rgb *= dirLight + indirLight;
 
