@@ -44,9 +44,9 @@ vec3 projectAndDivide(mat4 projectionMatrix, vec3 position){
 }
 
 void main() {
-	color = texture(colortex0, texcoord);
+  color = texture(colortex0, texcoord);
 
-	float depth = texture(depthtex0, texcoord).r;
+  float depth = texture(depthtex0, texcoord).r;
 	if (depth >= 1.0) {
 		return;
 	}
