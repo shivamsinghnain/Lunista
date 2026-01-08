@@ -28,6 +28,11 @@ in vec2 texcoord;
 const vec3 planetLightColor = vec3(23.47, 21.31, 20.79);
 
 const float MAX_STEPS = 120;
+const float NUM_STEPS = 24;
+
+const float SCATTERING_COEFFICIENT = 0.01;
+const float ABSORPTION_COEFFICIENT = 0.00;
+const float EXTINCTION_COEFFICIENT = SCATTERING_COEFFICIENT + ABSORPTION_COEFFICIENT;
 
 const float CLOUD_ALTITUDE = 1200.0;
 const float CLOUD_HEIGHT = 500.0;
@@ -123,7 +128,36 @@ float getDensity(vec3 rayPos) {
     return cloudDensity;
 }
 
-vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 planetLightColor) {
+float getTransmittance(vec3 primaryRayPos, vec3 planetPos) {
+
+    vec3 lightPos = planetPos;
+    vec3 rayStep = (lightPos - primaryRayPos) / float(NUM_STEPS);
+    float rayStepLength = length(rayStep);
+
+    // float sampleDensity = 0.0;
+    float transmittance = 1.0;
+
+    for (int i = 0; i < NUM_STEPS; i++) {
+        vec3 rayPos = primaryRayPos + rayStep * float(i);
+        float sampleDensity = getDensity(rayPos) * rayStepLength;
+
+        if (sampleDensity > 0.0) {
+            float transmittanceAlongLightRay = beersLaw(sampleDensity, SCATTERING_COEFFICIENT);
+            transmittance *= transmittanceAlongLightRay;
+        }
+    }
+    
+    return transmittance;
+}
+
+vec3 getCloudScatteringLight(in vec3 rayPos, in vec3 lightPos, in vec3 planetLightColor, float sampleDensity) {
+    float transmittanceToSun = getTransmittance(rayPos, lightPos);
+    vec3 scatteredLight = planetLightColor * transmittanceToSun * SCATTERING_COEFFICIENT * 1.0;
+
+    return scatteredLight;
+}
+
+vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 planetLightColor, vec3 lightPos) {
     vec3 startPos;
     vec3 endPos;
 
@@ -138,26 +172,29 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 planetLightColor) {
     vec3 scattering = vec3(0.0);
     float transmittance = 1.0;
 
-    float scatteringCoefficient = 0.01;
-    float absorptionCoefficient = 0.00;
+    // From bottom cloud pane to top in number of MAX_STEPS defined, e.i if MAX_STEPS = 120; then rayPos will take 120 steps to move to endPos from startPos;
+    vec3 rayStep = (endPos - startPos) / float(MAX_STEPS);
 
-    float extinctionCoefficient = scatteringCoefficient + absorptionCoefficient;
-
-    vec3 raySteps = (endPos - startPos) / float(MAX_STEPS);
-    float rayStepLength = length(raySteps);
+    // Distance between each step;
+    float rayStepLength = length(rayStep);
 
     for (int i = 0; i < MAX_STEPS; i++) {
-        vec3 rayPos = startPos + raySteps * float(i);
+        // startPos moves towards endPos in defined number of rayStep, current_step_index(i) moves the rayPos from one position to the next;
+        vec3 rayPos = startPos + rayStep * float(i);
 
+        // sample density;
         float sampleDensity = getDensity(rayPos) * rayStepLength;
 
-        if (sampleDensity > 1e-6) {
-            float transmittanceAtPoint = beersLaw(sampleDensity, scatteringCoefficient);
+        // if sampleDensity is more than 0.0 only then do the math;
+        if (sampleDensity > 0.1) {
+            // sample transmittanceAtPoint
+            float transmittanceAtPoint = beersLaw(sampleDensity, SCATTERING_COEFFICIENT);
 
-            vec3 scatteredLight = planetLightColor * scatteringCoefficient * 1.0;
-            vec3 integratedScatteringAtPoint = (scatteredLight - scatteredLight * transmittanceAtPoint);
-
-            scattering += integratedScatteringAtPoint * transmittance;
+            // sample scatteredLight
+            vec3 scatteredLight = getCloudScatteringLight(rayPos, lightPos, planetLightColor, sampleDensity);
+            
+            vec3 integratedScatteringAtPoint = (scatteredLight - scatteredLight * transmittanceAtPoint) / EXTINCTION_COEFFICIENT;
+            scattering += transmittance * integratedScatteringAtPoint;
             transmittance *= transmittanceAtPoint;
         }
     }
@@ -186,9 +223,12 @@ void main() {
         vec3 rayOrigin = eyeCameraPosition;
         vec3 rayDir = normalize(worldPos - rayOrigin);
 
+        vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition;
+        lightPos = lightPos * 20;
+
         if (rayDir.y < 0.0) return;
 
-        vec4 res = raymarch(rayOrigin, rayDir, planetLightColor);
+        vec4 res = raymarch(rayOrigin, rayDir, planetLightColor, lightPos);
         color.rgb = color.rgb * res.a + res.rgb;
     }
 }
