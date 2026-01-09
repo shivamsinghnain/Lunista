@@ -8,8 +8,9 @@ uniform sampler2D colortex0;
 uniform sampler2D depthtex0;
 
 #define CLOUD_3D_NOISE_TEXEL_SIZE_M 32.0 // 32m per texel
-const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M; // 4096m per tiling of the 3D texture
-const float CLOUD_3D_NOISE_TEXTURE_SIZE_L = 512.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M; // 4096m per tiling of the 3D texture
+#define CLOUD_2D_NOISE_TEXEL_SIZE_M 128.0
+const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
+const float CLOUD_2D_NOISE_TEXTURE_SIZE_M = 512.0 * CLOUD_2D_NOISE_TEXEL_SIZE_M; 
 
 uniform sampler3D alligatorNoiseTex;
 
@@ -22,13 +23,17 @@ uniform mat4 gbufferModelViewInverse;
 uniform vec3 cameraPosition;
 
 uniform vec3 shadowLightPosition;
+uniform vec3 skyColor;
+
+uniform vec3 relativeEyePosition;
+uniform ivec3 cameraPositionInt;
 
 in vec2 texcoord;
 
-const vec3 planetLightColor = vec3(23.47, 21.31, 20.79);
+const vec3 PLANET_LIGHT_COLOR = vec3(23.47, 21.31, 20.79);
 
-const float MAX_STEPS = 120;
-const float NUM_STEPS = 24;
+const int MAX_STEPS = 64;
+const int NUM_STEPS = 24;
 
 const float SCATTERING_COEFFICIENT = 0.01;
 const float ABSORPTION_COEFFICIENT = 0.00;
@@ -37,54 +42,9 @@ const float EXTINCTION_COEFFICIENT = SCATTERING_COEFFICIENT + ABSORPTION_COEFFIC
 const float CLOUD_ALTITUDE = 1200.0;
 const float CLOUD_HEIGHT = 500.0;
 
+const float PI = 3.14159265359;
+
 const float GLOBAL_COVERAGE_AMOUNT = 0.5;
-
-// float random3D(in vec3 p) {
-//     return fract(sin(p.x * 456.0 + p.y * 56.0 + p.z * 741.0) * 100.0);
-// }
-
-// vec3 smoothv2(in vec3 v) {
-//     return v * v * (3.0 - 2.0 * v);
-// }
-
-// float smoothNoise3D(in vec3 p) {
-//     vec3 f = smoothv2(fract(p));
-
-//     float a = random3D(floor(p));
-//     float b = random3D(vec3(ceil(p.x), floor(p.y), floor(p.z)));
-//     float c = random3D(vec3(floor(p.x), ceil(p.y), floor(p.z)));
-//     float d = random3D(vec3(ceil(p.xy), floor(p.z)));
-
-//     float bottom = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-
-//     a = random3D(vec3(floor(p.x), floor(p.y), ceil(p.z)));
-//     b = random3D(vec3(ceil(p.x), floor(p.y), ceil(p.z)));
-//     c = random3D(vec3(floor(p.x), ceil(p.y), ceil(p.z)));
-//     d = random3D(vec3(ceil(p.xy), ceil(p.z)));
-
-//     float top = mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-
-//     return mix(bottom, top, f.z);
-// }
-
-// float fractalNoise3D(in vec3 p) {
-//     float total = 0.5;
-//     float amplitude = 1.0;
-//     float frequency = 2.0;
-//     float iterations = 4.0;
-    
-//     for (float i = 0; i < iterations; i++) {
-//         total += (smoothNoise3D(p * frequency) - 0.5) * amplitude;
-//         amplitude *= 0.5;
-//         frequency *= 2.0;
-//     }
-
-//     return total;
-// }
-
-// float getCloud(vec3 p) {
-//     return clamp((fractalNoise3D(p) * fractalNoise3D(p * 0.25) * fractalNoise3D(p * 0.12) * 4.0 - 0.5) * 1.5 + 0.5, 0.0, 1.0);
-// }
 
 vec3 projectAndDivide(mat4 projectionMatrix, vec3 position) {
     vec4 homPos = projectionMatrix * vec4(position, 1.0);
@@ -99,12 +59,14 @@ float remap2(float x, float edge0, float edge1) {
     return clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 }
 
+
 bool getCloudUV(in vec3 rayOrigin, in vec3 rayDirection, out vec3 startPos, out vec3 endPos) {
     float upperCloudLayer = CLOUD_ALTITUDE + CLOUD_HEIGHT;
     float lowerCloudLayer = CLOUD_ALTITUDE;
 
     float t1 = max((upperCloudLayer - rayOrigin.y) / rayDirection.y, 0.0);
     float t2 = max((lowerCloudLayer - rayOrigin.y) / rayDirection.y, 0.0);
+
     if (abs(t1) == - abs(t2)) return false;
 
     startPos = rayOrigin + min(t1, t2) * rayDirection;
@@ -116,11 +78,11 @@ bool getCloudUV(in vec3 rayOrigin, in vec3 rayDirection, out vec3 startPos, out 
 float getDensity(vec3 rayPos) {
     vec4 alligatorNoise = textureLod(alligatorNoiseTex, rayPos / CLOUD_3D_NOISE_TEXTURE_SIZE_M, 0.0);
 
-    float baseDensityFBM = alligatorNoise.g * 0.5 + alligatorNoise.b * 0.35 + alligatorNoise.a * 0.15; 
+    float baseDensityFBM = dot(alligatorNoise.gba, vec3(0.015, 0.035, 0.95)); 
     float baseDensity = remap2(alligatorNoise.x, baseDensityFBM - 1.0, 1.0);
     
-    vec4 perlinNoise = textureLod(perlinNoiseTex, rayPos.xz / CLOUD_3D_NOISE_TEXTURE_SIZE_L, 0.0);
-    vec4 worleyNoise = textureLod(worleyNoiseTex, rayPos.xz / CLOUD_3D_NOISE_TEXTURE_SIZE_L, 0.0);
+    vec4 perlinNoise = textureLod(perlinNoiseTex, rayPos.xz / CLOUD_2D_NOISE_TEXTURE_SIZE_M, 0.0);
+    vec4 worleyNoise = textureLod(worleyNoiseTex, rayPos.xz / CLOUD_2D_NOISE_TEXTURE_SIZE_M, 0.0);
 
     float cloudCoverage = remap2(perlinNoise.x, GLOBAL_COVERAGE_AMOUNT - 1.0, 1.0);
     float cloudDensity = clamp(baseDensity - (1.0 - cloudCoverage), 0.0, 1.0);
@@ -128,36 +90,64 @@ float getDensity(vec3 rayPos) {
     return cloudDensity;
 }
 
-float getTransmittance(vec3 primaryRayPos, vec3 planetPos) {
+float henyeyGreenstien(float cosTheta, float g) {
+    return (1.0 / (4.0 * PI)) * ((1.0 - g * g) / pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5));
+}
 
-    vec3 lightPos = planetPos;
+float DualLobeHG(float cosTheta, float aniso1, float aniso2, float alpha) {
+    return mix(henyeyGreenstien(cosTheta, aniso1), henyeyGreenstien(cosTheta, aniso2), alpha);
+}
+
+float getOpticalDepth(vec3 primaryRayPos, vec3 planetPos) {
+    vec3 lightPos = primaryRayPos + planetPos * 1000;
     vec3 rayStep = (lightPos - primaryRayPos) / float(NUM_STEPS);
     float rayStepLength = length(rayStep);
 
-    // float sampleDensity = 0.0;
-    float transmittance = 1.0;
+    float opticalDepth = 0.0;
 
     for (int i = 0; i < NUM_STEPS; i++) {
         vec3 rayPos = primaryRayPos + rayStep * float(i);
-        float sampleDensity = getDensity(rayPos) * rayStepLength;
 
-        if (sampleDensity > 0.0) {
-            float transmittanceAlongLightRay = beersLaw(sampleDensity, SCATTERING_COEFFICIENT);
-            transmittance *= transmittanceAlongLightRay;
-        }
+        float sampleDensity = getDensity(rayPos);
+        opticalDepth += sampleDensity * rayStepLength;
     }
-    
-    return transmittance;
+
+    return opticalDepth;
 }
 
-vec3 getCloudScatteringLight(in vec3 rayPos, in vec3 lightPos, in vec3 planetLightColor, float sampleDensity) {
-    float transmittanceToSun = getTransmittance(rayPos, lightPos);
-    vec3 scatteredLight = planetLightColor * transmittanceToSun * SCATTERING_COEFFICIENT * 1.0;
+vec3 getCloudScatteringLight(in vec3 rayPos, in vec3 lightPos, in vec3 viewDir) {
+    float opticalDepth = getOpticalDepth(rayPos, lightPos);
+    float cosTheta = dot(lightPos, viewDir);
 
-    return scatteredLight;
+    float attenuation = 0.5;
+    float contribution = 0.5;
+    float phaseAttenuation = 0.5;
+
+    const int scatteringOctaves = 8;
+
+    float a = 1.0;
+    float b = 1.0;
+    float c = 1.0;
+    float g = 0.85;
+
+    vec3 luminance = vec3(0.0);
+
+    for (int i = 0; i < scatteringOctaves; i++) {
+        float phaseFunction = DualLobeHG(cosTheta, g * c, -0.5 * c, 0.5);
+
+        float beers = beersLaw(opticalDepth, EXTINCTION_COEFFICIENT * a);
+
+        luminance += b * PLANET_LIGHT_COLOR * phaseFunction * beers * SCATTERING_COEFFICIENT;
+        
+        a *= attenuation;
+        b *= contribution;
+        c *= (1.0 - phaseAttenuation);
+    }
+
+    return luminance;
 }
 
-vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 planetLightColor, vec3 lightPos) {
+vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 lightPos) {
     vec3 startPos;
     vec3 endPos;
 
@@ -186,16 +176,20 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 planetLightColor, vec3 lig
         float sampleDensity = getDensity(rayPos) * rayStepLength;
 
         // if sampleDensity is more than 0.0 only then do the math;
-        if (sampleDensity > 0.1) {
+        if (sampleDensity > 1e-6) {
             // sample transmittanceAtPoint
             float transmittanceAtPoint = beersLaw(sampleDensity, SCATTERING_COEFFICIENT);
 
             // sample scatteredLight
-            vec3 scatteredLight = getCloudScatteringLight(rayPos, lightPos, planetLightColor, sampleDensity);
+            vec3 scatteredLight = getCloudScatteringLight(rayPos, lightPos, rayDirection);
             
             vec3 integratedScatteringAtPoint = (scatteredLight - scatteredLight * transmittanceAtPoint) / EXTINCTION_COEFFICIENT;
             scattering += transmittance * integratedScatteringAtPoint;
             transmittance *= transmittanceAtPoint;
+
+            if (transmittance < 1e-6) {
+                break;
+            }
         }
     }
     return vec4(scattering, transmittance);
@@ -216,19 +210,14 @@ void main() {
         vec3 playerFeetPos = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
         vec3 eyePlayerPos = playerFeetPos - gbufferModelViewInverse[3].xyz;
 
-        vec3 eyeCameraPosition = cameraPosition + gbufferModelViewInverse[3].xyz;
+        vec3 rayOrigin = eyePlayerPos;
+        vec3 rayDir = normalize(rayOrigin);
 
-        vec3 worldPos = playerFeetPos + cameraPosition;
-
-        vec3 rayOrigin = eyeCameraPosition;
-        vec3 rayDir = normalize(worldPos - rayOrigin);
-
-        vec3 lightPos = mat3(gbufferModelViewInverse) * shadowLightPosition;
-        lightPos = lightPos * 20;
+        vec3 lightPos = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
 
         if (rayDir.y < 0.0) return;
 
-        vec4 res = raymarch(rayOrigin, rayDir, planetLightColor, lightPos);
+        vec4 res = raymarch(rayOrigin, rayDir, lightPos);
         color.rgb = color.rgb * res.a + res.rgb;
     }
 }
