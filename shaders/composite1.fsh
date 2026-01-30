@@ -30,7 +30,7 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const int MAX_STEPS = 64;
 const int NUM_STEPS = 24;
 
-#define CLOUD_3D_NOISE_TEXEL_SIZE_M 32.0
+#define CLOUD_3D_NOISE_TEXEL_SIZE_M 48.0
 const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
 
 #define CLOUD_2D_NOISE_TEXEL_SIZE_M 64.0
