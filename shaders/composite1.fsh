@@ -4,36 +4,37 @@
 const int colortex0Format = RGB16F;
 */
 
+//////////////////////////////////////////////////////////////////////////////////////
+
+in vec2 texcoord;
+
 uniform sampler2D colortex0;
 uniform sampler2D depthtex0;
-
-#define CLOUD_3D_NOISE_TEXEL_SIZE_M 32.0 // 32m per texel
-#define CLOUD_2D_NOISE_TEXEL_SIZE_M 128.0
-const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
-const float CLOUD_2D_NOISE_TEXTURE_SIZE_M = 512.0 * CLOUD_2D_NOISE_TEXEL_SIZE_M; 
-
-uniform sampler3D alligatorNoiseTex;
 
 uniform sampler2D perlinNoiseTex;
 uniform sampler2D worleyNoiseTex;
 
+uniform sampler3D alligatorNoiseTex;
+
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferModelViewInverse;
 
-uniform vec3 cameraPosition;
+uniform int worldTime;
 
 uniform vec3 shadowLightPosition;
-uniform vec3 skyColor;
 
-uniform vec3 relativeEyePosition;
-uniform ivec3 cameraPositionInt;
+//////////////////////////////////////////////////////////////////////////////////////
 
-in vec2 texcoord;
-
-const vec3 PLANET_LIGHT_COLOR = vec3(23.47, 21.31, 20.79);
+bool isNight = worldTime >= 13000 && worldTime < 24000;
 
 const int MAX_STEPS = 64;
 const int NUM_STEPS = 24;
+
+#define CLOUD_3D_NOISE_TEXEL_SIZE_M 32.0
+const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
+
+#define CLOUD_2D_NOISE_TEXEL_SIZE_M 64.0
+const float CLOUD_2D_NOISE_TEXTURE_SIZE_M = 256.0 * CLOUD_2D_NOISE_TEXEL_SIZE_M; 
 
 const float SCATTERING_COEFFICIENT = 0.01;
 const float ABSORPTION_COEFFICIENT = 0.00;
@@ -44,7 +45,16 @@ const float CLOUD_HEIGHT = 500.0;
 
 const float PI = 3.14159265359;
 
-const float GLOBAL_COVERAGE_AMOUNT = 0.5;
+const float GLOBAL_COVERAGE_AMOUNT = 0.9;
+
+vec3 PLANET_LIGHT_COLOR = isNight ? vec3(0.1, 0.1, 0.3) : vec3(23.47, 21.31, 20.79);
+
+//////////////////////////////////////////////////////////////////////////////////////
+
+/* RENDERTARGETS: 0 */
+layout(location = 0) out vec4 color;
+
+//////////////////////////////////////////////////////////////////////////////////////
 
 vec3 projectAndDivide(mat4 projectionMatrix, vec3 position) {
     vec4 homPos = projectionMatrix * vec4(position, 1.0);
@@ -59,15 +69,14 @@ float remap2(float x, float edge0, float edge1) {
     return clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 }
 
-
 bool getCloudUV(in vec3 rayOrigin, in vec3 rayDirection, out vec3 startPos, out vec3 endPos) {
     float upperCloudLayer = CLOUD_ALTITUDE + CLOUD_HEIGHT;
     float lowerCloudLayer = CLOUD_ALTITUDE;
 
-    float t1 = max((upperCloudLayer - rayOrigin.y) / rayDirection.y, 0.0);
-    float t2 = max((lowerCloudLayer - rayOrigin.y) / rayDirection.y, 0.0);
+    float t1 = (upperCloudLayer - rayOrigin.y) / rayDirection.y;
+    float t2 = (lowerCloudLayer - rayOrigin.y) / rayDirection.y;
 
-    if (abs(t1) == - abs(t2)) return false;
+    if (abs(t1) == -abs(t2)) return false;
 
     startPos = rayOrigin + min(t1, t2) * rayDirection;
     endPos = rayOrigin + max(t1, t2) * rayDirection;
@@ -78,7 +87,7 @@ bool getCloudUV(in vec3 rayOrigin, in vec3 rayDirection, out vec3 startPos, out 
 float getDensity(vec3 rayPos) {
     vec4 alligatorNoise = textureLod(alligatorNoiseTex, rayPos / CLOUD_3D_NOISE_TEXTURE_SIZE_M, 0.0);
 
-    float baseDensityFBM = dot(alligatorNoise.gba, vec3(0.015, 0.035, 0.95)); 
+    float baseDensityFBM = dot(alligatorNoise.yzw, vec3(0.15, 0.15, 0.7)); 
     float baseDensity = remap2(alligatorNoise.x, baseDensityFBM - 1.0, 1.0);
     
     vec4 perlinNoise = textureLod(perlinNoiseTex, rayPos.xz / CLOUD_2D_NOISE_TEXTURE_SIZE_M, 0.0);
@@ -155,7 +164,7 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 lightPos) {
     bool hitPlane = getCloudUV(rayOrigin, rayDirection, startPos, endPos);
     // If not exit early
     if (!hitPlane) {
-        return vec4(0.0);
+        discard;
     }
 
     // main function
@@ -170,13 +179,13 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 lightPos) {
 
     for (int i = 0; i < MAX_STEPS; i++) {
         // startPos moves towards endPos in defined number of rayStep, current_step_index(i) moves the rayPos from one position to the next;
-        vec3 rayPos = startPos + rayStep * float(i);
+        vec3 rayPos = startPos + rayStep * float(i + 0.5);
 
         // sample density;
         float sampleDensity = getDensity(rayPos) * rayStepLength;
 
         // if sampleDensity is more than 0.0 only then do the math;
-        if (sampleDensity > 1e-6) {
+        if (sampleDensity > 0.0) {
             // sample transmittanceAtPoint
             float transmittanceAtPoint = beersLaw(sampleDensity, SCATTERING_COEFFICIENT);
 
@@ -187,7 +196,7 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 lightPos) {
             scattering += transmittance * integratedScatteringAtPoint;
             transmittance *= transmittanceAtPoint;
 
-            if (transmittance < 1e-6) {
+            if (transmittance == 0.0) {
                 break;
             }
         }
@@ -195,8 +204,7 @@ vec4 raymarch(vec3 rayOrigin, vec3 rayDirection, vec3 lightPos) {
     return vec4(scattering, transmittance);
 }
 
-/* RENDERTARGETS: 0 */
-layout(location = 0) out vec4 color;
+//////////////////////////////////////////////////////////////////////////////////////
 
 void main() {
     color = texture(colortex0, texcoord);
