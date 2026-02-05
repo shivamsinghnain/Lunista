@@ -82,6 +82,7 @@ void main() {
 
   // Shadow
 	vec3 shadowViewPos = (shadowModelView * vec4(feetPlayerPos, 1.0)).xyz;
+  // do the offset for waving foliage here so that the shadows cast by waving foliage also move.
 	vec4 shadowClipPos = shadowProjection * vec4(shadowViewPos, 1.0);
 	
 	vec3 shadow = getSoftShadow(shadowClipPos, encodedNormal.rgb);

@@ -223,8 +223,6 @@ void main() {
         vec3 eyePlayerPos = playerFeetPos - gbufferModelViewInverse[3].xyz;
 
         vec3 rayOrigin = eyePlayerPos;
-        rayOrigin.x += frameTimeCounter * 0.5 * CLOUD_SPEED * 100.0;
-
         vec3 rayDir = normalize(rayOrigin);
 
         vec3 lightPos = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);
