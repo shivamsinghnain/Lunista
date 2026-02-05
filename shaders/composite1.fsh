@@ -226,6 +226,10 @@ void main() {
         if (rayDir.y < 0.0) return;
 
         vec4 res = raymarch(rayOrigin, rayDir, lightPos);
-        color.rgb = color.rgb * res.a + res.rgb;
+
+        float cloudFog = 1.0 / rayDir.y;
+        vec4 clouds = vec4(color.rgb * res.a + res.rgb, 1.0);
+
+        color.rgb = mix(color.rgb, clouds.rgb, clouds.a / cloudFog);
     }
 }
