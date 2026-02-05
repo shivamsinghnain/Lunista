@@ -23,12 +23,16 @@ uniform int worldTime;
 
 uniform vec3 shadowLightPosition;
 
+uniform float frameTimeCounter;
+
 //////////////////////////////////////////////////////////////////////////////////////
 
 bool isNight = worldTime >= 13000 && worldTime < 24000;
 
 const int MAX_STEPS = 64;
 const int NUM_STEPS = 24;
+
+#define CLOUD_SPEED 0.1
 
 #define CLOUD_3D_NOISE_TEXEL_SIZE_M 48.0
 const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
@@ -219,6 +223,8 @@ void main() {
         vec3 eyePlayerPos = playerFeetPos - gbufferModelViewInverse[3].xyz;
 
         vec3 rayOrigin = eyePlayerPos;
+        rayOrigin.x += frameTimeCounter * 0.5 * CLOUD_SPEED * 100.0;
+
         vec3 rayDir = normalize(rayOrigin);
 
         vec3 lightPos = mat3(gbufferModelViewInverse) * normalize(shadowLightPosition);

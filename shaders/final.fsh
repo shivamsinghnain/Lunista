@@ -17,5 +17,5 @@ void main() {
 	hdrScene = hdrScene / (hdrScene + vec3(1.0));
 	hdrScene = pow(hdrScene, vec3(1.0 / 2.2));
 
-  color = vec4(hdrScene, 1.0);
+	color = vec4(hdrScene, 1.0);
 }
