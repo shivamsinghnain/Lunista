@@ -1,7 +1,7 @@
 #version 330 compatibility
 
 /*
-const int colortex0Format = RGB16F;
+const int colortex0Format = RGBA16F;
 */
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -16,14 +16,14 @@ uniform sampler2D worleyNoiseTex;
 
 uniform sampler3D alligatorNoiseTex;
 
-uniform mat4 gbufferProjectionInverse;
-uniform mat4 gbufferModelViewInverse;
-
 uniform int worldTime;
+
+uniform float frameTimeCounter;
 
 uniform vec3 shadowLightPosition;
 
-uniform float frameTimeCounter;
+uniform mat4 gbufferProjectionInverse;
+uniform mat4 gbufferModelViewInverse;
 
 //////////////////////////////////////////////////////////////////////////////////////
 
@@ -32,7 +32,8 @@ bool isNight = worldTime >= 13000 && worldTime < 24000;
 const int MAX_STEPS = 64;
 const int NUM_STEPS = 24;
 
-#define CLOUD_SPEED 0.1
+#define CLOUD_SPEED 10
+#define CLOUD_FREQUENCY 25
 
 #define CLOUD_3D_NOISE_TEXEL_SIZE_M 48.0
 const float CLOUD_3D_NOISE_TEXTURE_SIZE_M = 128.0 * CLOUD_3D_NOISE_TEXEL_SIZE_M;
@@ -89,10 +90,16 @@ bool getCloudUV(in vec3 rayOrigin, in vec3 rayDirection, out vec3 startPos, out 
 }
 
 float getDensity(vec3 rayPos) {
+    rayPos.xz += frameTimeCounter * CLOUD_SPEED;
+
+
+
     vec4 alligatorNoise = textureLod(alligatorNoiseTex, rayPos / CLOUD_3D_NOISE_TEXTURE_SIZE_M, 0.0);
 
     float baseDensityFBM = dot(alligatorNoise.yzw, vec3(0.15, 0.15, 0.7)); 
     float baseDensity = remap2(alligatorNoise.x, baseDensityFBM - 1.0, 1.0);
+
+    rayPos.xz += frameTimeCounter * CLOUD_FREQUENCY;
     
     vec4 perlinNoise = textureLod(perlinNoiseTex, rayPos.xz / CLOUD_2D_NOISE_TEXTURE_SIZE_M, 0.0);
     vec4 worleyNoise = textureLod(worleyNoiseTex, rayPos.xz / CLOUD_2D_NOISE_TEXTURE_SIZE_M, 0.0);

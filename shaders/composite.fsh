@@ -4,7 +4,7 @@
 #include "/lib/brdf.glsl"
 
 /*
-const int colortex0Format = RGB16F;
+const int colortex0Format = RGBA16F;
 const int colortex1Format = RGBA8;
 const int colortex2Format = RGBA8;
 */
@@ -67,7 +67,6 @@ void main() {
   // Sample labPBR specular map
   vec4 labSpecular = texture(colortex4, texcoord);
   float roughness = max(labSpecular.r, 0.04);
-  // float reflectance = clamp(labSpecular.g * 255.0, 0.0, 229.0) / 229.0;
   float reflectance = labSpecular.g;
 
 	vec3 blocklight = lightmap.r * blocklightColor;
@@ -96,7 +95,7 @@ void main() {
   vec3 brdf = computeBRDF(labNormal.rgb, viewDir, lightDir, color.rgb, reflectance, roughness, planetLight);
 
   vec3 dirLight = brdf * shadow;
-  vec3 indirLight = vec3(vanillaAO * labAO);
+  vec3 indirLight = (blocklight + skylight + ambient) * vanillaAO * labAO;
 
   color.rgb *= dirLight + indirLight;
 

@@ -1,10 +1,11 @@
-#version 330 compatibility
+#version 400 compatibility
 
 attribute vec4 mc_Entity;
 
 in vec2 mc_midTexCoord;
 
 in vec4 at_tangent;
+in vec4 at_midBlock;
 
 out vec2 lmcoord;
 out vec2 texcoord;
@@ -20,12 +21,46 @@ uniform mat4 gbufferModelView;
 uniform mat4 gbufferProjectionInverse;
 uniform mat4 gbufferProjection;
 
+uniform sampler2D noisetex;
+
+uniform float viewWidth;
+uniform float viewHeight;
+
 uniform vec3 cameraPosition;
 
 uniform int worldTime;
 uniform float frameTimeCounter;
 
-#define GRASS_SPEED 0.43
+#define WIND_SPEED 0.75
+#define WAVE_AMP 1.0
+#define WIND_SHAPE 0.25
+
+const float PI = 3.14159265359;
+
+bool getFoliageTopVertex(float worldY) {
+	float bottomY = (worldY + (at_midBlock.y / 64.0)) - 0.45;
+	return worldY > bottomY;
+}
+
+vec4 getNoise(vec2 coord){
+  ivec2 screenCoord = ivec2(coord * vec2(viewWidth, viewHeight)); // exact pixel coordinate onscreen
+  ivec2 noiseCoord = screenCoord % 64; // wrap to range of noiseTextureResolution
+  return texelFetch(noisetex, noiseCoord, 0);
+}
+
+float notsure(vec3 pos) {
+	float num = PI / 4.0;
+	float denom = cos(pow(WAVE_AMP, 2.0) * PI * pos.z) + 1e-6;
+
+	float a = PI * pos.x + frameTimeCounter + (num / denom);
+
+	return a;
+}
+
+float windFunction(vec3 pos) {
+	return sin(WIND_SPEED * notsure(pos)) * cos(pow(WIND_SPEED, 3.0) * notsure(pos));
+
+}
 
 void main() {
 	// gl_Position = ftransform();
@@ -51,18 +86,28 @@ void main() {
 	// 	worldPos.xyz += worldPos.xyz + sin(worldTime * 0.1) * 0.1;
 	// }
 
-	if (mc_Entity.x == 10002) {
-		if (texcoord.y < mc_midTexCoord.y) {
-			vec4 worldPos = gbufferModelViewInverse * vec4(viewPos.xyz, 1.0); 
-			worldPos.xyz += cameraPosition;
+	vec4 pos = gl_Vertex;
+	pos = gl_ModelViewMatrix * pos; // viewPos
+	pos.xyz = (gbufferModelViewInverse * vec4(pos.xyz, 1.0)).xyz; // playerPos
+	pos.xyz += cameraPosition;
 
-			worldPos.xz += sin(worldPos.zx * frameTimeCounter * 0.03 * GRASS_SPEED) * 0.02 + sin(worldPos.xz * frameTimeCounter * 0.05 * GRASS_SPEED) * 0.03;
-			worldPos.y += sin(worldPos.x * frameTimeCounter * 0.015 * GRASS_SPEED) * 0.01 + sin(worldPos.z * frameTimeCounter * 0.025 * GRASS_SPEED) * 0.015;
+	bool topVertex = getFoliageTopVertex(pos.y);
 
-			worldPos.xyz -= cameraPosition;
-			viewPos = gbufferModelView * vec4(worldPos.xyz, 1.0);
-		}
+	if (mc_Entity.x == 10002 && topVertex) {
+		pos.xz += windFunction(pos.xyz) * WIND_SHAPE;
 	}
 
-	gl_Position = gl_ProjectionMatrix * viewPos;
+	if (mc_Entity.x == 10003 && topVertex || mc_Entity.x == 10004) {
+		pos.xz += windFunction(pos.xyz) * WIND_SHAPE * 0.55;
+	}
+
+	if (mc_Entity.x == 10004 && topVertex) {
+		pos.xz += windFunction(pos.xyz) * WIND_SHAPE * 0.5;
+	}
+
+	pos.xyz -= cameraPosition;
+	pos.xyz = (gbufferModelView * vec4(pos.xyz, 1.0)).xyz;
+	pos = gl_ProjectionMatrix * pos;
+
+	gl_Position = pos;
 }
